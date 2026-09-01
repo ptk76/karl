@@ -19,6 +19,7 @@
     "seedLocalD1": "wrangler d1 migrations apply DB --local"
   },
   "dependencies": {
+    "@azure/msal-browser": "^5.20.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
