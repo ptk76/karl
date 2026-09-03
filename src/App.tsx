@@ -1,11 +1,14 @@
 import React from "react";
 import style from "./App.module.css";
 import { useAppContext } from "./context/AppContext";
-import { loginToGoogle, loginAndListDriveFiles } from "./auth";
-import { loginAndListOneDriveFiles } from "./msAuth";
+import {
+  loginToGoogle,
+  loginAndListDriveFiles,
+  getAccessToken,
+} from "../worker/auth";
 
 function App(): React.JSX.Element {
-  const { code } = useAppContext();
+  const { code, initToken } = useAppContext();
 
   const handleListDriveFiles = () => {
     loginAndListDriveFiles()
@@ -13,10 +16,12 @@ function App(): React.JSX.Element {
       .catch((err) => console.error("Error fetching Drive files:", err));
   };
 
-  const handleListOneDriveFiles = () => {
-    loginAndListOneDriveFiles()
-      .then((files) => console.log("Files:", files))
-      .catch((err) => console.error("Error fetching OneDrive files:", err));
+  const handleGetToken = async () => {
+    await initToken();
+    // console.info(
+    //   "TOKEN:",
+    //   await getAccessToken().catch((e) => console.info("ERR:", e)),
+    // );
   };
 
   return (
@@ -25,7 +30,7 @@ function App(): React.JSX.Element {
       <div>CODE: {code ? code : "NULL"}</div>
       <button onClick={loginToGoogle}>GOOGLE</button>
       <button onClick={handleListDriveFiles}>GOOGLE DRV read</button>
-      <button onClick={handleListOneDriveFiles}>ONEDRIVE read</button>
+      <button onClick={handleGetToken}>GOOGLE TOKEN</button>
     </div>
   );
 }

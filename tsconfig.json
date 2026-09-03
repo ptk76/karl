@@ -23,6 +23,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
   },
-  "include": ["src"],
+  "include": ["src", "worker/auth.ts"],
   "references": []
 }

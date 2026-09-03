@@ -49,7 +49,7 @@ export function loginToGoogle() {
 
 let tokenClient: google.accounts.oauth2.TokenClient | undefined;
 
-function getTokenClient(
+export function getTokenClient(
   callback: (response: google.accounts.oauth2.TokenResponse) => void,
 ): google.accounts.oauth2.TokenClient {
   tokenClient ??= google.accounts.oauth2.initTokenClient({
@@ -85,13 +85,31 @@ async function fetchDriveFiles(accessToken: string): Promise<DriveFile[]> {
  */
 export function loginAndListDriveFiles(): Promise<DriveFile[]> {
   return new Promise((resolve, reject) => {
-    const client = getTokenClient((response) => {
+    const client = getTokenClient(async (response) => {
       if (response.error) {
         reject(response);
         return;
       }
+      console.info("DRV", response);
+      await fetchDriveFiles(response.access_token).then(resolve, reject);
       fetchDriveFiles(response.access_token).then(resolve, reject);
     });
+    console.info("CLIENT", client);
+    client.requestAccessToken();
+  });
+}
+
+export function getAccessToken(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const client = getTokenClient(async (response) => {
+      if (response.error) {
+        reject(response);
+        return;
+      }
+      console.info("DRV", response);
+      resolve(response.access_token);
+    });
+    console.info("CLIENT", client);
     client.requestAccessToken();
   });
 }

@@ -5,14 +5,20 @@ import React, {
   ReactNode,
   useEffect,
 } from "react";
+import { getTokenClient } from "../../worker/auth";
 
 interface AppContextType {
   code: string | null;
   token: string | null;
   test: string;
+  initToken: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export type RequestPayloadType = {
+  type: "goggle";
+};
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -21,14 +27,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   const [token, setToken] = useState<string | null>(null);
   const [test, setTest] = useState<string>("test");
 
-  useEffect(() => {
-    console.log("GET CODE");
-    const url = new URL(location.href);
+  const sendRequest = async (body: RequestPayloadType): Promise<unknown[]> => {
+    try {
+      const result = await fetch("/api", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      return await result.json();
+    } catch (error) {
+      return [];
+    }
+  };
 
-    setCode(url.searchParams.get("code"));
-    console.log("URL", url);
+  const requestToken = async () => {
+    const result = await sendRequest({ type: "goggle" });
+    console.info("RESULT", result);
+  };
+
+  useEffect(() => {
+    // requestToken();
     return () => {};
   }, []);
+
+  const initToken = async () => {
+    await sendRequest({ type: "goggle" });
+  };
 
   return (
     <AppContext.Provider
@@ -36,6 +59,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         code,
         token,
         test,
+        initToken,
       }}
     >
       {children}
