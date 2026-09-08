@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@azure/msal-browser": "^5.20.0",
+    "postal-mime": "^3.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

@@ -1,4 +1,5 @@
 // import { getAccessToken } from "./auth";
+import PostalMime from "postal-mime";
 import { getGoogleAccessToken } from "./google-auth";
 export default {
   async fetch(request: Request, env: Env) {
@@ -15,31 +16,30 @@ export default {
     );
     return new Response(JSON.stringify({ token: "EMPTY" }), { status: 200 });
   },
-  async email(message: ForwardableEmailMessage, env, ctx) {
-    const allowedSender = "pkudla@list.pl";
+  async email(
+    message: ForwardableEmailMessage,
+    env: Env,
+    ctx: ExecutionContext,
+  ) {
+    // Parse the raw email message
+    const parser = new PostalMime();
+    const rawEmail = new Response(message.raw);
+    const email = await parser.parse(await rawEmail.arrayBuffer());
 
-    if (message.from.toLowerCase() === allowedSender.toLowerCase()) {
-      // Build a reply email
-      const replyRaw =
-        `From: ${message.to}\r\n` +
-        `To: ${message.from}\r\n` +
-        `Subject: Re: ${message.headers.get("subject") || "(no subject)"}\r\n` +
-        `Content-Type: text/plain; charset="UTF-8"\r\n` +
-        `\r\n` +
-        `Hello`;
+    console.log("Received email:", {
+      from: message.from,
+      to: message.to,
+      subject: email.subject,
+      text: email.text,
+      html: email.html,
+    });
+    console.log("Email", message.from, email.html);
 
-      // EmailMessage from the cloudflare:email module
-      const { EmailMessage } = await import("cloudflare:email");
-      const reply = new EmailMessage(
-        message.to, // from (must be a verified address on your domain)
-        message.from, // to
-        replyRaw,
-      );
-
-      await message.reply(reply);
+    // Route based on recipient
+    if (message.to.includes("support@")) {
+      await message.forward("przemekkudla@hotmail.com");
     } else {
-      // Reject with a bounce-style message
-      message.setReject("Recipient not found");
+      await message.forward("pkudla@opera.com");
     }
   },
 } satisfies ExportedHandler<Env>;
