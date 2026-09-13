@@ -9,10 +9,12 @@ document.body.style.fontFamily =
 document.body.style.userSelect = "none";
 document.body.style.backgroundColor = "black";
 
+const url = new URL(location.href);
+console.info("URL", url, "code", url.searchParams.get("code"));
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AppProvider>
-      <App />
+      <App code={url.searchParams.get("code")} />
     </AppProvider>
   </StrictMode>,
 );
