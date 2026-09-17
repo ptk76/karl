@@ -6,7 +6,7 @@
     "module": "ESNext",
     "skipLibCheck": true,
 
-    "types": ["./worker-configuration.d.ts","google.accounts"],
+    "types": ["@cloudflare/workers-types"],
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -21,8 +21,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true,
+    "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "worker/auth.ts"],
+  "include": ["src", "worker/drive.ts", "worker-configuration.d.ts"],
   "references": []
 }

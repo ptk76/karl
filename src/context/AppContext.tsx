@@ -5,7 +5,6 @@ import React, {
   ReactNode,
   useEffect,
 } from "react";
-import { getTokenClient } from "../../worker/auth";
 
 interface AppContextType {
   code: string | null;
@@ -29,7 +28,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
 
   const sendRequest = async (body: RequestPayloadType): Promise<unknown[]> => {
     try {
-      const result = await fetch("/api", {
+      const result = await fetch("/login", {
         method: "POST",
         body: JSON.stringify(body),
       });
