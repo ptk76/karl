@@ -105,6 +105,19 @@ function App(props: { code: string | null }): React.JSX.Element {
     });
     console.info("USER", email, await response.text());
   };
+
+  const test = async () => {
+    const body: RequestPayload = {
+      type: "TEST",
+      email,
+    };
+    const response = await fetch("/test", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    console.info("USER", email, await response.text());
+  };
+
   useEffect(() => {
     const currentUser = localStorage.getItem("current_user");
     if (currentUser) setEmail(currentUser);
@@ -131,6 +144,10 @@ function App(props: { code: string | null }): React.JSX.Element {
       {email !== "" && <button onClick={logoutGoogle}>Log out {email}</button>}
       <button onClick={() => isUserLoggedIn(email)}>Is User Logged in?</button>
       <button onClick={() => refreshToken(email)}>Refresh token</button>
+
+      <div>
+        <button onClick={test}>TEST</button>
+      </div>
     </div>
   );
 }

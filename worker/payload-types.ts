@@ -57,11 +57,26 @@ export function isRequestPayloadRefresh(
     typeof (data as any).email === "string"
   );
 }
+
+type RequestPayloadTest = {
+  type: "TEST";
+  email: string;
+};
+
+export function isRequestPayloadTest(
+  data: unknown,
+): data is RequestPayloadActive {
+  return (
+    typeof data === "object" && data !== null && (data as any).type === "TEST"
+  );
+}
+
 export type RequestPayload =
   | RequestPayloadLogin
   | RequestPayloadCode
   | RequestPayloadActive
-  | RequestPayloadRefresh;
+  | RequestPayloadRefresh
+  | RequestPayloadTest;
 
 type ResponsePayloadError = {
   type: "ERROR";
