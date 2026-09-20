@@ -11,10 +11,13 @@ export async function emailHandler(
   // const rawEmail = new Response(message.raw);
   const rawEmail = new Response(message.raw as unknown as BodyInit);
   const email = await parser.parse(await rawEmail.arrayBuffer());
-
-  if (message.from === "pkudla@list") {
+  console.info("EMAIL", message.from);
+  if (message.from === "pkudla@list.pl") {
+    console.info("USER proc", 1);
     const db = new UsersDB(dbSrc);
+    console.info("USER proc", 2);
     const user = await db.getUser(message.from);
+    console.info("USER", user);
     if (user) {
       const drive = new GoogleDrive(user?.accessToken);
       try {
@@ -24,6 +27,7 @@ export async function emailHandler(
           email.subject ?? `${crypto.randomUUID().split("-")[0]}` + ".txt",
           email.text ?? "NONE",
         );
+        console.info("SAVED");
       } catch (e: any) {
         console.error("ERROR:", e);
       }
