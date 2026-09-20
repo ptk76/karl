@@ -3,7 +3,6 @@ import emailHandler from "./api/email";
 import GoogleDrive from "./google/drive";
 import UsersDB from "./db";
 import { isRequestPayloadTest, RequestPayload } from "./payload-types";
-import { use } from "react";
 
 class RequestType {
   readonly #path;
@@ -84,7 +83,7 @@ export default {
       status: 404,
     });
   },
-  async email(message: ForwardableEmailMessage) {
-    emailHandler(message);
+  async email(message: ForwardableEmailMessage, env: Env) {
+    emailHandler(message, env.DB);
   },
 } satisfies ExportedHandler<Env>;

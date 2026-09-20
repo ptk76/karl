@@ -2,7 +2,10 @@ import PostalMime from "postal-mime";
 import UsersDB from "../db";
 import GoogleDrive from "../google/drive";
 
-export async function emailHandler(message: ForwardableEmailMessage, env: Env) {
+export async function emailHandler(
+  message: ForwardableEmailMessage,
+  dbSrc: Env["DB"],
+) {
   // Parse the raw email message
   const parser = new PostalMime();
   // const rawEmail = new Response(message.raw);
@@ -10,7 +13,7 @@ export async function emailHandler(message: ForwardableEmailMessage, env: Env) {
   const email = await parser.parse(await rawEmail.arrayBuffer());
 
   if (message.from === "pkudla@list") {
-    const db = new UsersDB(env.DB);
+    const db = new UsersDB(dbSrc);
     const user = await db.getUser(message.from);
     if (user) {
       const drive = new GoogleDrive(user?.accessToken);
