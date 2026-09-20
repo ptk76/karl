@@ -44,7 +44,6 @@ class UsersDB {
       .bind(email)
       .first<UsersTable>();
 
-    console.info("ROW", email, row);
     if (!row) return null;
 
     return {
