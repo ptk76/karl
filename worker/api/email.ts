@@ -12,22 +12,20 @@ export async function emailHandler(
   const rawEmail = new Response(message.raw as unknown as BodyInit);
   const email = await parser.parse(await rawEmail.arrayBuffer());
   console.info("EMAIL", message.from);
-  if (message.from === "pkudla@list.pl") {
-    const db = new UsersDB(dbSrc);
-    const user = await db.getUser(message.from);
-    console.info("USER", user);
-    if (user) {
-      const drive = new GoogleDrive(user?.accessToken);
-      try {
-        const rootFolder = await drive.getRootFolderId();
-        await drive.pushFile(
-          rootFolder,
-          email.subject ?? `${crypto.randomUUID().split("-")[0]}` + ".txt",
-          email.text ?? "NONE",
-        );
-      } catch (e: any) {
-        console.error("ERROR:", e);
-      }
+  const db = new UsersDB(dbSrc);
+  const user = await db.getUser(message.from);
+  console.info("USER", user);
+  if (user) {
+    const drive = new GoogleDrive(user?.accessToken);
+    try {
+      const rootFolder = await drive.getRootFolderId();
+      await drive.pushFile(
+        rootFolder,
+        email.subject ?? `${crypto.randomUUID().split("-")[0]}` + ".txt",
+        email.text ?? "NONE",
+      );
+    } catch (e: any) {
+      console.error("ERROR:", e);
     }
   }
 
