@@ -83,7 +83,11 @@ export default {
       status: 404,
     });
   },
-  async email(message: ForwardableEmailMessage, env: Env) {
-    emailHandler(message, env.DB);
+  async email(
+    message: ForwardableEmailMessage,
+    env: Env,
+    ctx: ExecutionContext,
+  ) {
+    ctx.waitUntil(emailHandler(message, env.DB));
   },
 } satisfies ExportedHandler<Env>;

@@ -39,7 +39,6 @@ class UsersDB {
    * Fetch a user by email. Returns null if not found.
    */
   async getUser(email: string): Promise<User | null> {
-    console.info("GETUSER", email);
     const row = await this.db
       .prepare(`SELECT * FROM users WHERE email = ?`)
       .bind(email)

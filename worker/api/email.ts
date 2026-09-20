@@ -13,9 +13,7 @@ export async function emailHandler(
   const email = await parser.parse(await rawEmail.arrayBuffer());
   console.info("EMAIL", message.from);
   if (message.from === "pkudla@list.pl") {
-    console.info("USER proc", 1);
     const db = new UsersDB(dbSrc);
-    console.info("USER proc", 2);
     const user = await db.getUser(message.from);
     console.info("USER", user);
     if (user) {
@@ -27,7 +25,6 @@ export async function emailHandler(
           email.subject ?? `${crypto.randomUUID().split("-")[0]}` + ".txt",
           email.text ?? "NONE",
         );
-        console.info("SAVED");
       } catch (e: any) {
         console.error("ERROR:", e);
       }
