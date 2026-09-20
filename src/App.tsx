@@ -10,6 +10,7 @@ import {
   isResponsePayloadLogin,
   isResponsePayloadProfile,
 } from "../worker/payload-types";
+import { resume } from "react-dom/server";
 
 function navigateTo(url: string) {
   window.location.href = url;
@@ -18,7 +19,7 @@ function navigateTo(url: string) {
 function App(props: { code: string | null }): React.JSX.Element {
   const [loginUrl, setLoginUrl] = useState("");
   const [email, setEmail] = useState("");
-  const [login, setLogin] = useState("");
+  const [login, setLogin] = useState(false);
 
   const listFiles = async (token: string | null) => {
     const response = await fetch(
@@ -34,7 +35,7 @@ function App(props: { code: string | null }): React.JSX.Element {
   const logoutGoogle = async () => {
     localStorage.removeItem("current_user");
     setEmail("");
-    setLogin("");
+    setLogin(false);
     navigateTo("/");
   };
 
@@ -75,7 +76,7 @@ function App(props: { code: string | null }): React.JSX.Element {
       if (isResponsePayloadProfile(payload)) {
         localStorage.setItem("current_user", payload.email);
         setEmail(payload.email);
-        setLogin(payload.login);
+        setLogin(payload.login === "true");
       }
     } catch (error) {
       console.warn(error);
@@ -91,7 +92,10 @@ function App(props: { code: string | null }): React.JSX.Element {
       method: "POST",
       body: JSON.stringify(body),
     });
-    console.info("USER", email, await response.text());
+    const result = (await response.json()) as any;
+    console.info("USER", email, result, result.loggedIn);
+    setLogin(result.loggedIn);
+    return result.loggedIn;
   };
 
   const refreshToken = async (email: string) => {
@@ -134,9 +138,11 @@ function App(props: { code: string | null }): React.JSX.Element {
   return (
     <div className={style.container}>
       {email !== "" && (
-        <div>
-          Hello {email}, your Karl is {login}@karl.przemekkudla.pl
-        </div>
+        <>
+          <div>EMAIL: {email}</div>
+          <div>LOGGED IN: {login ? "TRUE" : "FALSE"}</div>
+          {/* <div>Karl EMAIL{login}@karl.przemekkudla.pl</div> */}
+        </>
       )}
       {email === "" && loginUrl && (
         <button onClick={loginGoogle}>Log in Google</button>
