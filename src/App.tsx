@@ -4,13 +4,9 @@ import style from "./App.module.css";
 import {
   RequestPayload,
   ResponsePayload,
-  isRequestPayloadLogin,
-  isRequestPayloadCode,
-  isRequestPayloadActive,
   isResponsePayloadLogin,
   isResponsePayloadProfile,
 } from "../worker/payload-types";
-import { resume } from "react-dom/server";
 
 function navigateTo(url: string) {
   window.location.href = url;
@@ -20,13 +16,6 @@ function App(props: { code: string | null }): React.JSX.Element {
   const [loginUrl, setLoginUrl] = useState("");
   const [email, setEmail] = useState("");
   const [login, setLogin] = useState(false);
-
-  const listFiles = async (token: string | null) => {
-    const response = await fetch(
-      `https://www.googleapis.com/drive/v2/files?access_token=${token}`,
-    );
-    console.info("RESP", response, await response.json());
-  };
 
   const loginGoogle = async () => {
     if (loginUrl === "") return;
@@ -76,7 +65,7 @@ function App(props: { code: string | null }): React.JSX.Element {
       if (isResponsePayloadProfile(payload)) {
         localStorage.setItem("current_user", payload.email);
         setEmail(payload.email);
-        setLogin(payload.login === "true");
+        setLogin(await isUserLoggedIn(payload.email));
       }
     } catch (error) {
       console.warn(error);
@@ -122,9 +111,16 @@ function App(props: { code: string | null }): React.JSX.Element {
     console.info("USER", email, await response.text());
   };
 
+  const init = async (email: string) => {
+    setLogin(await isUserLoggedIn(email));
+  };
+
   useEffect(() => {
     const currentUser = localStorage.getItem("current_user");
-    if (currentUser) setEmail(currentUser);
+    if (currentUser) {
+      setEmail(currentUser);
+      init(currentUser);
+    }
     if (props.code) {
       console.info("GET TOKEN");
       requestToken(props.code);
