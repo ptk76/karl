@@ -17,6 +17,5 @@
     {
       "name": "EMAIL"
     }
-  ],
-  "email": [{ "name": "EMAIL_HANDLER" }]
+  ]
 }

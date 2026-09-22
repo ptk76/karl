@@ -1,8 +1,10 @@
 import PostalMime from "postal-mime";
 import UsersDB from "../db";
 import GoogleDrive from "../google/drive";
+import sendEmail from "../send-email";
 
 export async function emailHandler(
+  env: Env,
   message: ForwardableEmailMessage,
   database: any,
 ) {
@@ -26,12 +28,22 @@ export async function emailHandler(
       const drive = new GoogleDrive(user?.accessToken);
       try {
         const rootFolder = await drive.getRootFolderId();
-        await drive.pushFile(
-          rootFolder,
-          email.subject ?? `${crypto.randomUUID().split("-")[0]}` + ".txt",
-          email.text ?? "NONE",
-        );
+        const filename =
+          email.subject ?? `${crypto.randomUUID().split("-")[0]}` + ".txt";
+        await drive.pushFile(rootFolder, filename, email.text ?? "NONE");
+        sendEmail(env, {
+          to: user.email,
+          from: "karl@przemekkudla.pl", // must be a verified domain
+          subject: "Success",
+          text: `The file was created: ${filename}`,
+        });
       } catch (e: any) {
+        sendEmail(env, {
+          to: user.email,
+          from: "karl@przemekkudla.pl", // must be a verified domain
+          subject: "ERROR 1",
+          text: JSON.stringify(e),
+        });
         console.error("ERROR:", e);
       }
     }
