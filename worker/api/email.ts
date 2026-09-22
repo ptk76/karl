@@ -48,6 +48,12 @@ export async function emailHandler(
       }
     }
   } catch (e: any) {
+    await sendEmail(env, {
+      to: message.from,
+      from: "karl@przemekkudla.pl", // must be a verified domain
+      subject: "EMAIL ERROR",
+      text: JSON.stringify(e),
+    });
     console.error("EMAIL ERROR:", e);
   }
 
