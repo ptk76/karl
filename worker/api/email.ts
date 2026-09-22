@@ -31,7 +31,7 @@ export async function emailHandler(
         const filename =
           email.subject ?? `${crypto.randomUUID().split("-")[0]}` + ".txt";
         await drive.pushFile(rootFolder, filename, email.text ?? "NONE");
-        sendEmail(env, {
+        await sendEmail(env, {
           to: user.email,
           from: "karl@przemekkudla.pl", // must be a verified domain
           subject: "Success",

@@ -42,7 +42,7 @@ export default {
     if (requestType.isLogin()) return loginHandler(request, secret, env.DB);
 
     if (requestType.isTest()) {
-      const result = sendEmail(env, {
+      const result = await sendEmail(env, {
         to: "pkudla@list.pl",
         from: "karl@przemekkudla.pl", // must be a verified domain
         subject: "Welcome!",
