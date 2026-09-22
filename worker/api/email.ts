@@ -38,7 +38,7 @@ export async function emailHandler(
           text: `The file was created: ${filename}`,
         });
       } catch (e: any) {
-        sendEmail(env, {
+        await sendEmail(env, {
           to: user.email,
           from: "karl@przemekkudla.pl", // must be a verified domain
           subject: "ERROR 1",
