@@ -1,7 +1,10 @@
 import PostalMime from "postal-mime";
 import UsersDB from "../db";
 import GoogleDrive from "../google/drive";
-import sendEmail, { ElasticEmailCredentials } from "../send-email";
+import sendEmail, {
+  ElasticEmailCredentials,
+  sendDiagnosticEmail,
+} from "../send-email";
 import { authError } from "./messages";
 
 export async function emailHandler(env: Env, message: ForwardableEmailMessage) {
@@ -42,7 +45,7 @@ export async function emailHandler(env: Env, message: ForwardableEmailMessage) {
       });
       // console.error("ERROR:", e);
     }
-  }
+  } else sendDiagnosticEmail(env, "Unknown user", JSON.stringify(message));
 }
 
 export default emailHandler;
