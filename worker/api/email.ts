@@ -33,20 +33,22 @@ export async function emailHandler(env: Env, message: ForwardableEmailMessage) {
           subject: "Success",
           text: `The file was created: ${filename}`,
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const error = e as Error;
         await sendEmail(secret, {
           to: user.email,
           subject: "EMAIL ERROR 1",
-          text: JSON.stringify(e),
+          text: JSON.stringify(error.message),
         });
         console.error("ERROR:", e);
       }
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const error = e as Error;
     await sendEmail(secret, {
       to: message.from,
       subject: "EMAIL ERROR 2",
-      text: JSON.stringify(e),
+      text: JSON.stringify(error.message),
     });
     console.error("EMAIL ERROR:", e);
   }
