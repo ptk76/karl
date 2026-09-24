@@ -1,6 +1,9 @@
 import loginHandler from "./api/login";
 import emailHandler from "./api/email";
-import sendEmail from "./send-email";
+import sendEmail, {
+  ElasticEmailCredentials,
+  sendDiagnosticEmail,
+} from "./send-email";
 
 class RequestType {
   readonly #path;
@@ -42,11 +45,11 @@ export default {
     if (requestType.isLogin()) return loginHandler(request, secret, env.DB);
 
     if (requestType.isTest()) {
-      const result = await sendEmail(env, {
+      const config = JSON.parse(env.ELASTIC_SECRET) as ElasticEmailCredentials;
+      console.info("CONFIG", config);
+      const result = await sendEmail(config, {
         to: "pkudla@list.pl",
-        from: "karl@przemekkudla.pl", // must be a verified domain
         subject: "Welcome!",
-        html: "<h1>Hello!</h1>",
         text: "Hello!",
       });
 
@@ -61,6 +64,10 @@ export default {
     env: Env,
     ctx: ExecutionContext,
   ) {
-    ctx.waitUntil(emailHandler(env, message, env.DB));
+    try {
+      ctx.waitUntil(emailHandler(env, message));
+    } catch (error) {
+      ctx.waitUntil(sendDiagnosticEmail(env, "ERROR", JSON.stringify(error)));
+    }
   },
 } satisfies ExportedHandler<Env>;

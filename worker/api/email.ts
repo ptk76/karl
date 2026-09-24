@@ -1,13 +1,10 @@
 import PostalMime from "postal-mime";
 import UsersDB from "../db";
 import GoogleDrive from "../google/drive";
-import sendEmail from "../send-email";
+import sendEmail, { ElasticEmailCredentials } from "../send-email";
 
-export async function emailHandler(
-  env: Env,
-  message: ForwardableEmailMessage,
-  database: any,
-) {
+export async function emailHandler(env: Env, message: ForwardableEmailMessage) {
+  const secret = JSON.parse(env.ELASTIC_SECRET) as ElasticEmailCredentials;
   try {
     // Parse the raw email message
     const parser = new PostalMime();
@@ -21,7 +18,7 @@ export async function emailHandler(
       text: email.text,
       html: email.html,
     });
-    const db = new UsersDB(database);
+    const db = new UsersDB(env.DB);
     const user = await db.getUser(message.from);
     console.info("USER", user);
     if (user) {
@@ -31,47 +28,28 @@ export async function emailHandler(
         const filename =
           email.subject ?? `${crypto.randomUUID().split("-")[0]}` + ".txt";
         await drive.pushFile(rootFolder, filename, email.text ?? "NONE");
-        await sendEmail(env, {
+        await sendEmail(secret, {
           to: user.email,
-          from: "karl@przemekkudla.pl", // must be a verified domain
           subject: "Success",
           text: `The file was created: ${filename}`,
         });
       } catch (e: any) {
-        await sendEmail(env, {
+        await sendEmail(secret, {
           to: user.email,
-          from: "karl@przemekkudla.pl", // must be a verified domain
-          subject: "ERROR 1",
+          subject: "EMAIL ERROR 1",
           text: JSON.stringify(e),
         });
         console.error("ERROR:", e);
       }
     }
   } catch (e: any) {
-    await sendEmail(env, {
+    await sendEmail(secret, {
       to: message.from,
-      from: "karl@przemekkudla.pl", // must be a verified domain
-      subject: "EMAIL ERROR",
+      subject: "EMAIL ERROR 2",
       text: JSON.stringify(e),
     });
     console.error("EMAIL ERROR:", e);
   }
-
-  // console.log("Received email:", {
-  //   from: message.from,
-  //   to: message.to,
-  //   subject: email.subject,
-  //   text: email.text,
-  //   html: email.html,
-  // });
-  // console.log("Email", message.from, email.html);
-
-  // // Route based on recipient
-  // if (message.to.includes("support@")) {
-  //   await message.forward("przemekkudla@hotmail.com");
-  // } else {
-  //   await message.forward("pkudla@opera.com");
-  // }
 }
 
 export default emailHandler;
