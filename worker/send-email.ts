@@ -21,10 +21,14 @@ async function sendEmail(
       Subject: email.subject,
       Body: [
         {
-          ContentType: "PlainText",
+          ContentType: "HTML",
           Content: email.text,
         },
       ],
+    },
+    Options: {
+      TrackOpens: "false",
+      TrackClicks: "flase",
     },
   };
   console.info("BODY", body);
