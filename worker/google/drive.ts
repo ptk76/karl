@@ -3,63 +3,19 @@ export interface DriveFile {
   name: string;
 }
 
-async function createDogFileInDearKarl(accessToken: string) {
-  const headers = { Authorization: `Bearer ${accessToken}` };
-
-  // 1. Find the "dearkarl" folder
-  const folderQuery = encodeURIComponent(
-    `name = 'dearkarl' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-  );
-  const folderRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${folderQuery}&fields=files(id,name)`,
-    { headers },
-  );
-  const folderData = (await folderRes.json()) as { files: Array<any> };
-
-  if (!folderData.files || folderData.files.length === 0) {
-    throw new Error("Folder 'dearkarl' not found");
+/** Raised when Drive rejects the token, so callers can tell this apart. */
+export class DriveAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DriveAuthError";
   }
-  const folderId = folderData.files[0].id;
+}
 
-  // 2. Create dog.txt inside that folder using multipart upload
-  const metadata = {
-    name: "dog.txt",
-    parents: [folderId],
-    mimeType: "text/plain",
-  };
-  const fileContent = "Ala ma kota";
-
-  const boundary = "-------314159265358979323846";
-  const delimiter = `\r\n--${boundary}\r\n`;
-  const closeDelimiter = `\r\n--${boundary}--`;
-
-  const multipartBody =
-    delimiter +
-    "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
-    JSON.stringify(metadata) +
-    delimiter +
-    "Content-Type: text/plain\r\n\r\n" +
-    fileContent +
-    closeDelimiter;
-
-  const uploadRes = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,parents",
-    {
-      method: "POST",
-      headers: {
-        ...headers,
-        "Content-Type": `multipart/related; boundary=${boundary}`,
-      },
-      body: multipartBody,
-    },
-  );
-
-  if (!uploadRes.ok) {
-    const err = await uploadRes.text();
-    throw new Error(`Failed to create dog.txt: ${uploadRes.status} ${err}`);
-  }
-
-  return uploadRes.json(); // { id, name, parents }
+function driveError(status: number, body: string, context: string): Error {
+  const message = `${context}: ${status} ${body}`;
+  return status === 401 || status === 403
+    ? new DriveAuthError(message)
+    : new Error(message);
 }
 
 class GoogleDrive {
@@ -70,88 +26,81 @@ class GoogleDrive {
     this.#folder = folder;
   }
 
-  async getRootFolderId(): Promise<any> {
-    const headers = { Authorization: `Bearer ${this.#token}` };
+  get #headers() {
+    return { Authorization: `Bearer ${this.#token}` };
+  }
 
-    // 1. Search for an existing folder with this name (and parent, if given)
-    let query = `name = '${this.#folder.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+  /**
+   * Returns the folder id as a string on every path. The create branch used
+   * to return the whole API response object, so the first write for a new
+   * user was given an object where an id was expected.
+   */
+  async getRootFolderId(): Promise<any> {
+    const query = `name = '${this.#folder.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
 
     const searchRes = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
-      { headers },
+      { headers: this.#headers },
     );
     if (!searchRes.ok) {
-      throw new Error(
-        `Failed to search for folder: ${searchRes.status} ${await searchRes.text()}`,
+      throw driveError(
+        searchRes.status,
+        await searchRes.text(),
+        "Failed to search for folder",
       );
     }
 
-    const searchData = (await searchRes.json()) as any;
-
+    const searchData = (await searchRes.json()) as { files?: DriveFile[] };
     if (searchData.files && searchData.files.length > 0) {
-      // Folder already exists — return its id
       return searchData.files[0].id;
     }
-
-    // 2. Not found — create it
-    const metadata: Record<string, unknown> = {
-      name: this.#folder,
-      mimeType: "application/vnd.google-apps.folder",
-    };
 
     const createRes = await fetch(
       "https://www.googleapis.com/drive/v3/files?fields=id,name",
       {
         method: "POST",
-        headers: {
-          ...headers,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(metadata),
+        headers: { ...this.#headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: this.#folder,
+          mimeType: "application/vnd.google-apps.folder",
+        }),
       },
     );
 
     if (!createRes.ok) {
-      throw new Error(
-        `Failed to create folder: ${createRes.status} ${await createRes.text()}`,
+      throw driveError(
+        createRes.status,
+        await createRes.text(),
+        "Failed to create folder",
       );
     }
-    return await createRes.json();
+
+    const created = (await createRes.json()) as DriveFile;
+    if (!created?.id) throw new Error("Drive did not return a folder id");
+    return created.id;
   }
 
   async fetchAllFiles(folderId: string) {
-    const headers = { Authorization: `Bearer ${this.#token}` };
-
-    // // 1. Find the folder
-    // const folderQuery = encodeURIComponent(
-    //   `name = '${this.#folder}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-    // );
-    // console.info("0", folderQuery);
-    // const folderRes = await fetch(
-    //   `https://www.googleapis.com/drive/v3/files?q=${folderQuery}&fields=files(id,name)`,
-    //   { headers },
-    // );
-    // const folderData = (await folderRes.json()) as { files: Array<any> };
-    // console.info("folderData", JSON.stringify(folderData));
-    // console.info("1");
-    // if (!folderData.files || folderData.files.length === 0) {
-    //   throw new Error(`Folder ${this.#folder} not found`);
-    // }
-    // const folderId = folderData.files[0].id;
-
-    // 2. List files inside that folder
     const filesQuery = encodeURIComponent(
       `'${folderId}' in parents and trashed = false`,
     );
     const filesRes = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=${filesQuery}&fields=files(id,name,mimeType)`,
-      { headers },
+      { headers: this.#headers },
     );
-    console.info("2");
-    const filesData = (await filesRes.json()) as { files: Array<any> };
-    const files = filesData.files || [];
+    if (!filesRes.ok) {
+      throw driveError(
+        filesRes.status,
+        await filesRes.text(),
+        "Failed to list files",
+      );
+    }
 
-    // 3. Download the content of each file
+    const filesData = (await filesRes.json()) as {
+      files?: Array<DriveFile & { mimeType: string }>;
+    };
+    const files = filesData.files ?? [];
+
     const results = [];
     for (const file of files) {
       let content;
@@ -160,14 +109,14 @@ class GoogleDrive {
         // Google-native file (Doc/Sheet/Slide) — export as plain text
         const exportRes = await fetch(
           `https://www.googleapis.com/drive/v3/files/${file.id}/export?mimeType=text/plain`,
-          { headers },
+          { headers: this.#headers },
         );
         content = await exportRes.text();
       } else {
         // Regular file (e.g. .txt, .csv) — download directly
         const downloadRes = await fetch(
           `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`,
-          { headers },
+          { headers: this.#headers },
         );
         content = await downloadRes.text();
       }
@@ -183,30 +132,11 @@ class GoogleDrive {
   }
 
   async pushFile(folderId: string, name: string, payload: string) {
-    const headers = { Authorization: `Bearer ${this.#token}` };
-
-    // // 1. Find the "dearkarl" folder
-    // const folderQuery = encodeURIComponent(
-    //   `name =  ${this.#folder} and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-    // );
-    // const folderRes = await fetch(
-    //   `https://www.googleapis.com/drive/v3/files?q=${folderQuery}&fields=files(id,name)`,
-    //   { headers },
-    // );
-    // const folderData = (await folderRes.json()) as { files: Array<any> };
-
-    // if (!folderData.files || folderData.files.length === 0) {
-    //   throw new Error(`Folder ${this.#folder} not found`);
-    // }
-    // const folderId = folderData.files[0].id;
-
-    // 2. Create dog.txt inside that folder using multipart upload
     const metadata = {
-      name: name,
+      name,
       parents: [folderId],
       mimeType: "text/plain",
     };
-    const fileContent = payload;
 
     const boundary = "-------314159265358979323846";
     const delimiter = `\r\n--${boundary}\r\n`;
@@ -218,7 +148,7 @@ class GoogleDrive {
       JSON.stringify(metadata) +
       delimiter +
       "Content-Type: text/plain\r\n\r\n" +
-      fileContent +
+      payload +
       closeDelimiter;
 
     const uploadRes = await fetch(
@@ -226,7 +156,7 @@ class GoogleDrive {
       {
         method: "POST",
         headers: {
-          ...headers,
+          ...this.#headers,
           "Content-Type": `multipart/related; boundary=${boundary}`,
         },
         body: multipartBody,
@@ -234,11 +164,14 @@ class GoogleDrive {
     );
 
     if (!uploadRes.ok) {
-      const err = await uploadRes.text();
-      throw new Error(`Failed to create dog.txt: ${uploadRes.status} ${err}`);
+      throw driveError(
+        uploadRes.status,
+        await uploadRes.text(),
+        `Failed to create ${name}`,
+      );
     }
 
-    return uploadRes.json(); // { id, name, parents }
+    return uploadRes.json();
   }
 }
 

@@ -14,6 +14,18 @@ Regards, Karl
 `,
 } satisfies EmailContent;
 
+export const driveError = {
+  subject: "Could not save your file",
+  message: `
+Hello!
+<br><br>
+I could not save your file. Make sure that you have enough space on your drive. <br>
+You may want to report the issue directly to us: <a href="mailto:support@przemekkudla.pl">support@dearkarl.com</a>
+<br><br>
+Regards, Karl
+`,
+} satisfies EmailContent;
+
 export const unknownUser = {
   subject: "Unknown User",
   message: `
