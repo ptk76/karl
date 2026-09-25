@@ -28,6 +28,11 @@ export async function emailHandler(env: Env, message: ForwardableEmailMessage) {
         text: `The file was created: ${filename}`,
       });
     } catch (e: any) {
+      sendDiagnosticEmail(
+        secret,
+        "user",
+        JSON.stringify(e.message ?? JSON.stringify(e) + "FROM" + email.from),
+      );
       await sendEmail(secret, {
         to: message.from,
         subject: authError.subject,
@@ -35,7 +40,6 @@ export async function emailHandler(env: Env, message: ForwardableEmailMessage) {
       });
     }
   } else {
-    sendDiagnosticEmail(secret, "Unknown user", JSON.stringify(message));
     await sendEmail(secret, {
       to: message.from,
       subject: unknownUser.subject,
