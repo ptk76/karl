@@ -28,10 +28,9 @@ async function sendEmail(
     },
     Options: {
       TrackOpens: "false",
-      TrackClicks: "flase",
+      TrackClicks: "false",
     },
   };
-  console.info("BODY", body);
   try {
     const res = await fetch("https://api.elasticemail.com/v4/emails", {
       method: "POST",
@@ -41,31 +40,27 @@ async function sendEmail(
       },
       body: JSON.stringify(body),
     });
-    console.info("RESP", res);
     if (!res.ok) {
       const errText = await res.text();
       throw new Error(`Email send failed: ${res.status} ${errText}`);
     }
-
-    const data = await res.json();
-    console.log("Email sent:", data);
-  } catch (e) {
+  } catch (e: any) {
     console.info("ERROR !", e);
+    await sendDiagnosticEmail(creds, "ERROR", e.message ?? JSON.stringify(e));
   }
 }
 
 export async function sendDiagnosticEmail(
-  env: Env,
+  creds: ElasticEmailCredentials,
   subject: string,
   text: string,
-): Promise<EmailSendResult> {
-  const response = await env.EMAIL.send({
+): Promise<void> {
+  await sendEmail(creds, {
     to: "przemekkudla@hotmail.com",
-    from: "logger@przemekkudla.pl", // must be a verified domain
+    from: "error@przemekkudla.pl",
     subject,
     text,
   });
-  return response;
 }
 
 export default sendEmail;

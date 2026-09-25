@@ -46,7 +46,6 @@ export default {
 
     if (requestType.isTest()) {
       const config = JSON.parse(env.ELASTIC_SECRET) as ElasticEmailCredentials;
-      console.info("CONFIG", config);
       const result = await sendEmail(config, {
         to: "pkudla@list.pl",
         subject: "Welcome!",
@@ -67,7 +66,10 @@ export default {
     try {
       ctx.waitUntil(emailHandler(env, message));
     } catch (error) {
-      ctx.waitUntil(sendDiagnosticEmail(env, "ERROR", JSON.stringify(error)));
+      const secret = JSON.parse(env.ELASTIC_SECRET) as ElasticEmailCredentials;
+      ctx.waitUntil(
+        sendDiagnosticEmail(secret, "ERROR", JSON.stringify(error)),
+      );
     }
   },
 } satisfies ExportedHandler<Env>;

@@ -36,8 +36,14 @@ export async function emailHandler(env: Env, message: ForwardableEmailMessage) {
         subject: "Success",
         text: `The file was created: ${filename}`,
       });
-    } catch (e: unknown) {
+    } catch (e: any) {
       // const error = e as Error;
+      await sendDiagnosticEmail(
+        secret,
+        "ERROR",
+        e.message ?? JSON.stringify(e),
+      );
+
       await sendEmail(secret, {
         to: user.email,
         subject: "Access Denied",
@@ -45,7 +51,7 @@ export async function emailHandler(env: Env, message: ForwardableEmailMessage) {
       });
       // console.error("ERROR:", e);
     }
-  } else sendDiagnosticEmail(env, "Unknown user", JSON.stringify(message));
+  } else sendDiagnosticEmail(secret, "Unknown user", JSON.stringify(message));
 }
 
 export default emailHandler;
