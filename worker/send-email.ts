@@ -45,8 +45,8 @@ async function sendEmail(
       throw new Error(`Email send failed: ${res.status} ${errText}`);
     }
   } catch (e: any) {
-    console.info("ERROR !", e);
-    await sendDiagnosticEmail(creds, "ERROR", e.message ?? JSON.stringify(e));
+    console.info("ERROR !", e.message ?? JSON.stringify(e));
+    // await sendDiagnosticEmail(creds, "ERROR", e.message ?? JSON.stringify(e));
   }
 }
 
