@@ -26,10 +26,6 @@ async function sendEmail(
         },
       ],
     },
-    // Options: {
-    //   TrackOpens: "false",
-    //   TrackClicks: "false",
-    // },
   };
   try {
     const res = await fetch("https://api.elasticemail.com/v4/emails", {
@@ -42,10 +38,11 @@ async function sendEmail(
     });
     if (!res.ok) {
       const errText = await res.text();
+      console.info("EMAIL ERROR 0", res.status, res.statusText);
       throw new Error(`Email send failed: ${res.status} ${errText}`);
     }
   } catch (e: any) {
-    console.info("EMAIL ERROR", e.message ?? JSON.stringify(e));
+    console.info("EMAIL ERROR 1", e.message ?? JSON.stringify(e));
   }
 }
 

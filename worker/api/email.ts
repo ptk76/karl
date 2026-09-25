@@ -5,25 +5,16 @@ import sendEmail, {
   ElasticEmailCredentials,
   sendDiagnosticEmail,
 } from "../send-email";
-import { authError } from "./messages";
+import { authError, unknownUser } from "./messages";
 
 export async function emailHandler(env: Env, message: ForwardableEmailMessage) {
   const secret = JSON.parse(env.ELASTIC_SECRET) as ElasticEmailCredentials;
   // Parse the raw email message
   const parser = new PostalMime();
-  // const rawEmail = new Response(message.raw);
   const rawEmail = new Response(message.raw as unknown as BodyInit);
   const email = await parser.parse(await rawEmail.arrayBuffer());
-  // console.log("Received email:", {
-  //   from: message.from,
-  //   to: message.to,
-  //   subject: email.subject,
-  //   text: email.text,
-  //   html: email.html,
-  // });
   const db = new UsersDB(env.DB);
   const user = await db.getUser(message.from);
-  // console.info("USER", user);
   if (user) {
     const drive = new GoogleDrive(user?.accessToken);
     try {
@@ -37,21 +28,20 @@ export async function emailHandler(env: Env, message: ForwardableEmailMessage) {
         text: `The file was created: ${filename}`,
       });
     } catch (e: any) {
-      // const error = e as Error;
-      await sendDiagnosticEmail(
-        secret,
-        "ERROR",
-        e.message ?? JSON.stringify(e),
-      );
-
       await sendEmail(secret, {
-        to: user.email,
-        subject: "Access Denied",
-        text: authError,
+        to: message.from,
+        subject: authError.subject,
+        text: authError.message,
       });
-      // console.error("ERROR:", e);
     }
-  } else sendDiagnosticEmail(secret, "Unknown user", JSON.stringify(message));
+  } else {
+    sendDiagnosticEmail(secret, "Unknown user", JSON.stringify(message));
+    await sendEmail(secret, {
+      to: message.from,
+      subject: unknownUser.subject,
+      text: unknownUser.message,
+    });
+  }
 }
 
 export default emailHandler;

@@ -68,7 +68,7 @@ export default {
     } catch (error) {
       const secret = JSON.parse(env.ELASTIC_SECRET) as ElasticEmailCredentials;
       ctx.waitUntil(
-        sendDiagnosticEmail(secret, "ERROR", JSON.stringify(error)),
+        sendDiagnosticEmail(secret, "EMAIL ERROR 2", JSON.stringify(error)),
       );
     }
   },

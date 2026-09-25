@@ -87,7 +87,6 @@ class GoogleDrive {
     }
 
     const searchData = (await searchRes.json()) as any;
-    console.info("searchData", searchData);
 
     if (searchData.files && searchData.files.length > 0) {
       // Folder already exists — return its id
