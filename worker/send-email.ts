@@ -45,8 +45,7 @@ async function sendEmail(
       throw new Error(`Email send failed: ${res.status} ${errText}`);
     }
   } catch (e: any) {
-    console.info("ERROR !", e.message ?? JSON.stringify(e));
-    // await sendDiagnosticEmail(creds, "ERROR", e.message ?? JSON.stringify(e));
+    console.info("EMAIL ERROR", e.message ?? JSON.stringify(e));
   }
 }
 
@@ -55,6 +54,8 @@ export async function sendDiagnosticEmail(
   subject: string,
   text: string,
 ): Promise<void> {
+  console.info("DIAG", subject, text);
+
   await sendEmail(creds, {
     to: "przemekkudla@hotmail.com",
     from: "error@przemekkudla.pl",
