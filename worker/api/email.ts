@@ -28,7 +28,7 @@ export async function emailHandler(env: Env, message: ForwardableEmailMessage) {
         text: `The file was created: ${filename}`,
       });
     } catch (e: any) {
-      console.info("USER email", email, "MSG", message);
+      console.info("USER email", email.from, "MSG", message.from, message.to);
       await sendEmail(secret, {
         to: message.from,
         subject: authError.subject,
