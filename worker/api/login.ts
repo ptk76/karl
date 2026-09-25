@@ -52,8 +52,8 @@ export async function loginHandler(
   if (isRequestPayloadCode(payload)) {
     const access = (await client.getAccessToken(
       payload.code ?? "",
-    )) as AccessData;
-    if (access.id_token === undefined)
+    )) as AccessData | null;
+    if (!access || access.id_token === undefined)
       return new Response(JSON.stringify(access), { status: 404 });
     const jwtPayload = access.id_token.split(".")[1];
     const decoded = JSON.parse(
@@ -76,14 +76,18 @@ export async function loginHandler(
         accessToken: access.access_token,
         accessExpires: convertExpireToDate(access.expires_in),
         refreshToken: access.refresh_token,
-        refreshExpires: convertExpireToDate(access.refresh_token_expires_in),
+        refreshExpires: access.refresh_token_expires_in
+          ? convertExpireToDate(access.refresh_token_expires_in)
+          : null,
       });
     } else {
       await usersDb.updateUserTokens(decoded.email, {
         accessToken: access.access_token,
         accessExpires: convertExpireToDate(access.expires_in),
         refreshToken: access.refresh_token,
-        refreshExpires: convertExpireToDate(access.refresh_token_expires_in),
+        refreshExpires: access.refresh_token_expires_in
+          ? convertExpireToDate(access.refresh_token_expires_in)
+          : null,
       });
     }
 
@@ -121,38 +125,24 @@ export async function loginHandler(
     };
     const user = (await usersDb.getUser(payload.email)) as User | null;
     if (user?.refreshToken) {
-      const result = (await client.refreshAccessToken(
-        user.refreshToken,
-      )) as RefreshTokenResult;
-      console.info("RESULT", result);
-      await usersDb.updateUserTokens(payload.email, {
-        accessToken: result.access_token,
-        accessExpires: convertExpireToDate(result.expires_in.toString()),
-      });
+      try {
+        const result = (await client.refreshAccessToken(
+          user.refreshToken,
+        )) as RefreshTokenResult;
+        await usersDb.updateUserTokens(payload.email, {
+          accessToken: result.access_token,
+          accessExpires: convertExpireToDate(result.expires_in.toString()),
+        });
+        responsePayload.loggedIn = true;
+        responsePayload.expiresIn = result.expires_in;
+      } catch (e) {
+        console.warn("Token refresh failed");
+      }
     }
     return new Response(JSON.stringify(responsePayload), {
       status: 200,
     });
   }
-  // const data: any = await response.json();
-
-  // if (!response.ok) {
-  //   throw new Error(
-  //     `Token exchange failed: ${data.error} - ${data.error_description || ""}`,
-  //   );
-  // }
-  // console.info("DATA", data);
-
-  // const url = new URL("https://www.googleapis.com/drive/v3/files");
-  // url.searchParams.set("pageSize", "10");
-  // url.searchParams.set("fields", "files(id,name)");
-
-  // const response = await fetch(url, {
-  //   headers: {
-  //     Authorization: `Bearer ${token}`,
-  //   },
-  // });
-  // console.info("response", response);
   const errorPayload: ResponsePayload = {
     type: "ERROR",
     msg: "Unknown request",
@@ -162,34 +152,3 @@ export async function loginHandler(
 
 export default loginHandler;
 
-// async function getValidAccessToken(
-//   usersDb: UsersDB,
-//   env: Env,
-//   email: string,
-// ): Promise<string> {
-//   const user = await usersDb.getUser(email);
-//   if (!user) throw new Error("User not found");
-
-//   if (isTokenStillValid(user.accessExpires)) {
-//     return user.accessToken;
-//   }
-
-//   if (!user.refreshToken) {
-//     throw new Error("No refresh token available — user must re-authenticate");
-//   }
-
-//   const refreshed = await refreshAccessToken({
-//     refreshToken: user.refreshToken,
-//     clientId: env.GOOGLE_CLIENT_ID,
-//     clientSecret: env.GOOGLE_CLIENT_SECRET,
-//   });
-
-//   await usersDb.updateUserTokens(email, {
-//     accessToken: refreshed.access_token,
-//     accessExpires: Date.now() + refreshed.expires_in * 1000,
-//     // refreshToken omitted — Google didn't return a new one, so
-//     // your COALESCE logic in updateUserTokens correctly leaves it untouched
-//   });
-
-//   return refreshed.access_token;
-// }

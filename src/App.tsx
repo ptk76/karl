@@ -12,144 +12,179 @@ function navigateTo(url: string) {
   window.location.href = url;
 }
 
+/** localStorage throws in private modes and with site data blocked. */
+const storage = {
+  get(key: string): string | null {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set(key: string, value: string) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* ignore — the session still works, it just will not be remembered */
+    }
+  },
+  remove(key: string) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+  },
+};
+
+async function postToLogin(body: RequestPayload): Promise<ResponsePayload> {
+  const response = await fetch("/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+  return (await response.json()) as ResponsePayload;
+}
+
 function App(props: { code: string | null }): React.JSX.Element {
   const [loginUrl, setLoginUrl] = useState("");
   const [email, setEmail] = useState("");
   const [login, setLogin] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const loginGoogle = async () => {
     if (loginUrl === "") return;
     navigateTo(loginUrl);
   };
+
   const logoutGoogle = async () => {
-    localStorage.removeItem("current_user");
+    storage.remove("current_user");
     setEmail("");
     setLogin(false);
     navigateTo("/");
   };
 
   const getLoginUrl = async () => {
-    const body: RequestPayload = {
-      type: "LOGIN",
-    };
+    setError("");
     try {
-      const response = await fetch("/login", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-      const payload = (await response.json()) as ResponsePayload;
-      console.info("PAYLOAD", payload);
+      const payload = await postToLogin({ type: "LOGIN" });
       if (isResponsePayloadLogin(payload)) setLoginUrl(payload.url);
-      else setLoginUrl("");
-    } catch (error) {
-      console.warn(error);
+      else throw new Error("Unexpected response from the server");
+    } catch {
       setLoginUrl("");
+      setError("Could not reach Dear Karl. Check your connection and retry.");
     }
   };
 
   const requestToken = async (code: string) => {
-    const body: RequestPayload = {
-      type: "CODE",
-      code,
-    };
+    setError("");
+    setBusy(true);
     try {
-      const response = await fetch("/login", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-      if (response.status === 404) {
-        navigateTo("/");
-      }
-      const payload = (await response.json()) as ResponsePayload;
-      console.info("PAYLOAD", payload);
+      const payload = await postToLogin({ type: "CODE", code });
       if (isResponsePayloadProfile(payload)) {
-        localStorage.setItem("current_user", payload.email);
+        storage.set("current_user", payload.email);
         setEmail(payload.email);
         setLogin(await isUserLoggedIn(payload.email));
+      } else {
+        throw new Error("Unexpected response from the server");
       }
-    } catch (error) {
-      console.warn(error);
+    } catch {
+      setError("Signing in failed. Please try again.");
+      await getLoginUrl();
+    } finally {
+      setBusy(false);
+      // Keep the authorization code out of the address bar and history.
+      window.history.replaceState({}, "", "/");
     }
   };
 
-  const isUserLoggedIn = async (email: string) => {
-    const body: RequestPayload = {
-      type: "ACTIVE",
-      email,
-    };
-    const response = await fetch("/login", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-    const result = (await response.json()) as any;
-    console.info("USER", email, result, result.loggedIn);
-    setLogin(result.loggedIn);
-    return result.loggedIn;
+  const isUserLoggedIn = async (address: string): Promise<boolean> => {
+    if (!address) return false;
+    try {
+      const result = (await postToLogin({
+        type: "ACTIVE",
+        email: address,
+      })) as ResponsePayload & { loggedIn?: boolean };
+      const loggedIn = Boolean(result.loggedIn);
+      setLogin(loggedIn);
+      return loggedIn;
+    } catch {
+      setError("Could not check your session status.");
+      return false;
+    }
   };
 
-  const refreshToken = async (email: string) => {
-    const body: RequestPayload = {
-      type: "REFRESH",
-      email,
-    };
-    const response = await fetch("/login", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-    console.info("USER", email, await response.text());
-  };
-
-  const test = async () => {
-    const body: RequestPayload = {
-      type: "TEST",
-      email,
-    };
-    const response = await fetch("/test", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-    console.info("USER", email, await response.text());
-  };
-
-  const init = async (email: string) => {
-    setLogin(await isUserLoggedIn(email));
+  const refreshToken = async (address: string) => {
+    if (!address) return;
+    setError("");
+    setBusy(true);
+    try {
+      const result = (await postToLogin({
+        type: "REFRESH",
+        email: address,
+      })) as ResponsePayload & { loggedIn?: boolean };
+      setLogin(Boolean(result.loggedIn));
+      if (!result.loggedIn) setError("Could not refresh your session.");
+    } catch {
+      setError("Could not refresh your session.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   useEffect(() => {
-    const currentUser = localStorage.getItem("current_user");
+    const currentUser = storage.get("current_user");
     if (currentUser) {
       setEmail(currentUser);
-      init(currentUser);
+      isUserLoggedIn(currentUser);
     }
     if (props.code) {
-      console.info("GET TOKEN");
       requestToken(props.code);
-      // navigateTo("/");
     } else {
       getLoginUrl();
     }
     return () => {};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className={style.container}>
+      <h1>Dear Karl</h1>
+      <p>
+        Forward an email to Karl and it is saved as a file in your Google Drive,
+        in a folder called <code>dearkarl</code>.
+      </p>
+
+      {error && (
+        <p role="alert" className={style.error}>
+          {error}
+        </p>
+      )}
+
       {email !== "" && (
         <>
-          <div>EMAIL: {email}</div>
-          <div>LOGGED IN: {login ? "TRUE" : "FALSE"}</div>
-          {/* <div>Karl EMAIL{login}@karl.przemekkudla.pl</div> */}
+          <p>
+            Signed in as <strong>{email}</strong> —{" "}
+            {login ? "session active" : "session expired"}
+          </p>
+          <button onClick={logoutGoogle}>Log out</button>
+          <button onClick={() => refreshToken(email)} disabled={busy}>
+            {busy ? "Working…" : "Refresh session"}
+          </button>
         </>
       )}
-      {email === "" && loginUrl && (
-        <button onClick={loginGoogle}>Log in Google</button>
-      )}
-      {email !== "" && <button onClick={logoutGoogle}>Log out {email}</button>}
-      <button onClick={() => isUserLoggedIn(email)}>Is User Logged in?</button>
-      <button onClick={() => refreshToken(email)}>Refresh token</button>
 
-      <div>
-        <button onClick={test}>TEST</button>
-      </div>
+      {email === "" && loginUrl && (
+        <button onClick={loginGoogle}>Log in with Google</button>
+      )}
+
+      {email === "" && !loginUrl && !error && <p>Loading…</p>}
+
+      {email === "" && error && <button onClick={getLoginUrl}>Try again</button>}
     </div>
   );
 }
