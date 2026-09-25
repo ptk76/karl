@@ -26,10 +26,10 @@ async function sendEmail(
         },
       ],
     },
-    Options: {
-      TrackOpens: "false",
-      TrackClicks: "false",
-    },
+    // Options: {
+    //   TrackOpens: "false",
+    //   TrackClicks: "false",
+    // },
   };
   try {
     const res = await fetch("https://api.elasticemail.com/v4/emails", {
