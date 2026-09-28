@@ -96,7 +96,11 @@ export async function emailHandler(
 
   try {
     const rootFolder = await drive.getRootFolderId();
-    await drive.pushFile(rootFolder, filename, email.text ?? "NONE");
+    await drive.pushFile(
+      rootFolder,
+      filename,
+      email.html ?? email.text ?? "NONE",
+    );
     await sendEmail(creds, {
       to: user.email,
       subject: `Saved to Drive: ${filename}`,
