@@ -29,6 +29,8 @@ export function isRequestPayloadCode(
 type RequestPayloadActive = {
   type: "ACTIVE";
   email: string;
+  /** The user's Karl login, used as a shared secret proving ownership. */
+  login: string;
 };
 
 export function isRequestPayloadActive(
@@ -38,13 +40,16 @@ export function isRequestPayloadActive(
     typeof data === "object" &&
     data !== null &&
     (data as any).type === "ACTIVE" &&
-    typeof (data as any).email === "string"
+    typeof (data as any).email === "string" &&
+    typeof (data as any).login === "string"
   );
 }
 
 type RequestPayloadRefresh = {
   type: "REFRESH";
   email: string;
+  /** The user's Karl login, used as a shared secret proving ownership. */
+  login: string;
 };
 
 export function isRequestPayloadRefresh(
@@ -54,20 +59,8 @@ export function isRequestPayloadRefresh(
     typeof data === "object" &&
     data !== null &&
     (data as any).type === "REFRESH" &&
-    typeof (data as any).email === "string"
-  );
-}
-
-type RequestPayloadTest = {
-  type: "TEST";
-  email: string;
-};
-
-export function isRequestPayloadTest(
-  data: unknown,
-): data is RequestPayloadActive {
-  return (
-    typeof data === "object" && data !== null && (data as any).type === "TEST"
+    typeof (data as any).email === "string" &&
+    typeof (data as any).login === "string"
   );
 }
 
@@ -75,8 +68,7 @@ export type RequestPayload =
   | RequestPayloadLogin
   | RequestPayloadCode
   | RequestPayloadActive
-  | RequestPayloadRefresh
-  | RequestPayloadTest;
+  | RequestPayloadRefresh;
 
 type ResponsePayloadError = {
   type: "ERROR";

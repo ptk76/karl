@@ -62,6 +62,11 @@ class GoogleToken {
         body,
       });
 
+      // Never hand the raw body back to callers: on failure it carries
+      // Google's error detail, and on a consent without the email scope it
+      // would carry the tokens themselves.
+      if (!response.ok) return null;
+
       return response.json();
     } catch {
       return null;

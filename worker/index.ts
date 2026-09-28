@@ -21,9 +21,6 @@ class RequestType {
     return this.#path === "/mcp" || this.#path === "/api/mcp";
   }
 
-  isTest() {
-    return this.#path === "/test" || this.#path === "/api/test";
-  }
 }
 
 export default {
@@ -37,10 +34,6 @@ export default {
     const requestType = new RequestType(request);
 
     if (requestType.isLogin()) return loginHandler(request, secret, env.DB);
-
-    // TODO(pkudla) To be removed
-    if (requestType.isTest()) {
-    }
 
     return new Response(JSON.stringify({ error: "Page not found" }), {
       status: 404,

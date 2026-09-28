@@ -53,8 +53,13 @@ export async function loginHandler(
     const access = (await client.getAccessToken(
       payload.code ?? "",
     )) as AccessData | null;
-    if (!access || access.id_token === undefined)
-      return new Response(JSON.stringify(access), { status: 404 });
+    if (!access || access.id_token === undefined) {
+      const failure: ResponsePayload = {
+        type: "ERROR",
+        msg: "Sign-in failed",
+      };
+      return new Response(JSON.stringify(failure), { status: 400 });
+    }
     const jwtPayload = access.id_token.split(".")[1];
     const decoded = JSON.parse(
       atob(jwtPayload.replace(/-/g, "+").replace(/_/g, "/")),
@@ -104,7 +109,9 @@ export async function loginHandler(
       loggedIn: false,
       expiresIn: -1,
     };
-    if (user) {
+    // Without this check the address alone is enough to query anyone's
+    // session state, which makes the endpoint an account-existence oracle.
+    if (user && user.login === payload.login) {
       const token = user.accessToken;
       const result = await client.checkGoogleTokenValidity(token);
       responsePayload.expiresIn = result.expires_in ?? -1;
@@ -124,7 +131,7 @@ export async function loginHandler(
       expiresIn: -1,
     };
     const user = (await usersDb.getUser(payload.email)) as User | null;
-    if (user?.refreshToken) {
+    if (user && user.login === payload.login && user.refreshToken) {
       try {
         const result = (await client.refreshAccessToken(
           user.refreshToken,
