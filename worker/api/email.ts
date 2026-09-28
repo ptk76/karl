@@ -74,6 +74,7 @@ export async function emailHandler(
     }
 
     const refreshed = await client.refreshAccessToken(user.refreshToken);
+    console.info("REF", refreshed);
     await db.updateUserTokens(user.email, {
       accessToken: refreshed.access_token,
       accessExpires: Date.now() + refreshed.expires_in * 1000,
