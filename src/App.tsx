@@ -62,6 +62,7 @@ function App(props: { code: string | null }): React.JSX.Element {
   };
   const logoutGoogle = async () => {
     storage.remove("current_user");
+    storage.remove("current_login");
     setEmail("");
     setLogin(false);
     navigateTo("/");
@@ -88,8 +89,9 @@ function App(props: { code: string | null }): React.JSX.Element {
       const payload = await postToLogin({ type: "CODE", code });
       if (isResponsePayloadProfile(payload)) {
         storage.set("current_user", payload.email);
+        storage.set("current_login", payload.login);
         setEmail(payload.email);
-        setLogin(await isUserLoggedIn(payload.email));
+        setLogin(await isUserLoggedIn(payload.email, payload.login));
       } else {
         throw new Error("Unexpected response from the server");
       }
@@ -103,12 +105,16 @@ function App(props: { code: string | null }): React.JSX.Element {
     }
   };
 
-  const isUserLoggedIn = async (address: string): Promise<boolean> => {
-    if (!address) return false;
+  const isUserLoggedIn = async (
+    address: string,
+    karlLogin: string,
+  ): Promise<boolean> => {
+    if (!address || !karlLogin) return false;
     try {
       const result = (await postToLogin({
         type: "ACTIVE",
         email: address,
+        login: karlLogin,
       })) as ResponsePayload & { loggedIn?: boolean };
       const loggedIn = Boolean(result.loggedIn);
       setLogin(loggedIn);
@@ -119,14 +125,15 @@ function App(props: { code: string | null }): React.JSX.Element {
     }
   };
 
-  const refreshToken = async (address: string) => {
-    if (!address) return;
+  const refreshToken = async (address: string, karlLogin: string) => {
+    if (!address || !karlLogin) return;
     setError("");
     setBusy(true);
     try {
       const result = (await postToLogin({
         type: "REFRESH",
         email: address,
+        login: karlLogin,
       })) as ResponsePayload & { loggedIn?: boolean };
       setLogin(Boolean(result.loggedIn));
       if (!result.loggedIn) setError("Could not refresh your session.");
@@ -137,23 +144,16 @@ function App(props: { code: string | null }): React.JSX.Element {
     }
   };
 
-  const test = async () => {
-    const body: RequestPayload = {
-      type: "TEST",
-      email,
-    };
-    const response = await fetch("/test", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-    console.info("USER", email, await response.text());
-  };
-
   useEffect(() => {
     const currentUser = storage.get("current_user");
-    if (currentUser) {
+    const currentLogin = storage.get("current_login");
+    if (currentUser && currentLogin) {
       setEmail(currentUser);
-      isUserLoggedIn(currentUser);
+      isUserLoggedIn(currentUser, currentLogin);
+    } else if (currentUser) {
+      // Stored before logins were kept; the session secret is unavailable,
+      // so the user has to sign in again.
+      storage.remove("current_user");
     }
     if (props.code) {
       requestToken(props.code);
@@ -161,6 +161,7 @@ function App(props: { code: string | null }): React.JSX.Element {
       getLoginUrl();
     }
     return () => {};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -183,7 +184,10 @@ function App(props: { code: string | null }): React.JSX.Element {
             {login ? "session active" : "session expired"}
           </p>
           <button onClick={logoutGoogle}>Log out</button>
-          <button onClick={() => refreshToken(email)} disabled={busy}>
+          <button
+            onClick={() => refreshToken(email, storage.get("current_login") ?? "")}
+            disabled={busy}
+          >
             {busy ? "Working…" : "Refresh session"}
           </button>
         </>
@@ -197,9 +201,6 @@ function App(props: { code: string | null }): React.JSX.Element {
         <button onClick={getLoginUrl}>Try again</button>
       )}
 
-      <div>
-        <button onClick={test}>TEST</button>
-      </div>
     </div>
   );
 }

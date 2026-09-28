@@ -9,7 +9,6 @@ document.body.style.fontFamily =
 document.body.style.backgroundColor = "black";
 
 const url = new URL(location.href);
-console.info("URL", url, "code", url.searchParams.get("code"));
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AppProvider>

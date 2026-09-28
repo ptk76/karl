@@ -6,7 +6,7 @@ import sendEmail, {
   escapeHtml,
   sendDiagnosticEmail,
 } from "../send-email";
-import { authError, driveError, unknownUser } from "./messages";
+import { authError, driveError } from "./messages";
 import GoogleToken from "../google/token";
 
 /** Google Drive rejects these in names; also cap the length. */
@@ -49,11 +49,16 @@ export async function emailHandler(
   const db = new UsersDB(env.DB);
   const user = await db.getUser(message.from);
   if (!user) {
-    await sendEmail(creds, {
-      to: message.from,
-      subject: unknownUser.subject,
-      text: unknownUser.message,
-    });
+    // Do NOT reply to the sender here. The envelope sender is unverified
+    // (the check above is deliberately fail-open), so replying would let
+    // anyone make Karl mail a stranger from the operator's sending
+    // identity — RFC 3834 backscatter. Tell the operator instead.
+    await sendDiagnosticEmail(
+      creds,
+      "Unknown user",
+      `An unregistered sender was rejected. rawSize=${message.rawSize}`,
+      diagnosticTo,
+    );
     return;
   }
 
