@@ -131,6 +131,10 @@ class GoogleToken {
       );
     }
   }
+
+  isTokenValid(accessExpires: number) {
+    return accessExpires - 60 * 1000 > Date.now();
+  }
 }
 
 export default GoogleToken;

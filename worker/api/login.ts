@@ -152,35 +152,3 @@ export async function loginHandler(
 }
 
 export default loginHandler;
-
-// async function getValidAccessToken(
-//   usersDb: UsersDB,
-//   env: Env,
-//   email: string,
-// ): Promise<string> {
-//   const user = await usersDb.getUser(email);
-//   if (!user) throw new Error("User not found");
-
-//   if (isTokenStillValid(user.accessExpires)) {
-//     return user.accessToken;
-//   }
-
-//   if (!user.refreshToken) {
-//     throw new Error("No refresh token available — user must re-authenticate");
-//   }
-
-//   const refreshed = await refreshAccessToken({
-//     refreshToken: user.refreshToken,
-//     clientId: env.GOOGLE_CLIENT_ID,
-//     clientSecret: env.GOOGLE_CLIENT_SECRET,
-//   });
-
-//   await usersDb.updateUserTokens(email, {
-//     accessToken: refreshed.access_token,
-//     accessExpires: Date.now() + refreshed.expires_in * 1000,
-//     // refreshToken omitted — Google didn't return a new one, so
-//     // your COALESCE logic in updateUserTokens correctly leaves it untouched
-//   });
-
-//   return refreshed.access_token;
-// }
