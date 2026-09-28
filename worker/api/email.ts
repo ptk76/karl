@@ -72,14 +72,21 @@ export async function emailHandler(
       });
       return;
     }
-
-    const refreshed = await client.refreshAccessToken(user.refreshToken);
-    console.info("REF", refreshed);
-    await db.updateUserTokens(user.email, {
-      accessToken: refreshed.access_token,
-      accessExpires: Date.now() + refreshed.expires_in * 1000,
-    });
-    accessToken = refreshed.access_token;
+    try {
+      const refreshed = await client.refreshAccessToken(user.refreshToken);
+      await db.updateUserTokens(user.email, {
+        accessToken: refreshed.access_token,
+        accessExpires: Date.now() + refreshed.expires_in * 1000,
+      });
+      accessToken = refreshed.access_token;
+    } catch (e: any) {
+      await sendEmail(creds, {
+        to: user.email,
+        subject: authError.subject,
+        text: authError.message,
+      });
+      return;
+    }
   }
 
   const drive = new GoogleDrive(accessToken);
