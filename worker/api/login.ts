@@ -3,14 +3,14 @@ import {
   RequestPayload,
   ResponsePayload,
   isRequestPayloadCode,
-  isRequestPayloadActive,
   isLoginRequest,
   isCodeRequest,
   isActiveRequest,
-} from "../payload-types";
+  ActiveSession,
+  LoginUrl,
+} from "../../shared/api";
 import UsersDB, { UserTableRow } from "../db";
 import { getPayload, getSid } from "./utils";
-import { ActiveSession, LoginUrl } from "../../src/server";
 
 type AccessData = {
   access_token: string;

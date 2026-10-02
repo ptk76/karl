@@ -1,4 +1,4 @@
-import { RequestPayload } from "../payload-types";
+import { type RequestPayload } from "../../shared/api";
 
 export function getSid(req: Request) {
   const cookieHeader = req.headers?.get("cookie");

@@ -1,27 +1,13 @@
-export interface ActiveSession {
-  userEmail: string;
-  karlEmail: string;
-}
-export function isActiveSession(value: unknown): value is ActiveSession {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as ActiveSession).userEmail === "string" &&
-    typeof (value as ActiveSession).karlEmail === "string"
-  );
-}
+import {
+  type ActiveSession,
+  type LoginUrl,
+  isActiveSession,
+  isLoginUrl,
+} from "../shared/api";
 
-export interface LoginUrl {
-  url: string;
-}
-
-export function isLoginUrl(value: unknown): value is LoginUrl {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as LoginUrl).url === "string"
-  );
-}
+// Re-exported so this module remains the frontend's API client surface.
+export type { ActiveSession, LoginUrl };
+export { isActiveSession, isLoginUrl };
 
 export const getActiveSession = async (): Promise<ActiveSession | null> => {
   try {

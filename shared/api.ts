@@ -1,3 +1,9 @@
+/**
+ * API contract shared between the frontend (`src`) and the worker (`worker`).
+ * Wire types, runtime guards, and route constants live here so both sides
+ * agree on the same shapes. Never redefine these in `src` or `worker`.
+ */
+
 const api = (path: string) => `/api/${path}`;
 
 export const ApiPaths = {
@@ -6,10 +12,6 @@ export const ApiPaths = {
   logout: api("logout"),
   active: api("active"),
 } as const;
-
-type RequestPayloadLogin = {
-  type: "LOGIN";
-};
 
 export function isLoginRequest(url: URL) {
   return url.pathname === ApiPaths.login;
@@ -26,6 +28,10 @@ export function isCodeRequest(url: URL) {
 export function isActiveRequest(url: URL) {
   return url.pathname === ApiPaths.active;
 }
+
+type RequestPayloadLogin = {
+  type: "LOGIN";
+};
 
 type RequestPayloadCode = {
   code: string;
@@ -167,3 +173,31 @@ export type ResponsePayload =
   | ResponsePayloadLogin
   | ResponsePayloadProfile
   | ResponsePayloadActive;
+
+/** Response of `GET /api/active`, as consumed by `src/server`. */
+export interface ActiveSession {
+  userEmail: string;
+  karlEmail: string;
+}
+
+export function isActiveSession(value: unknown): value is ActiveSession {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as ActiveSession).userEmail === "string" &&
+    typeof (value as ActiveSession).karlEmail === "string"
+  );
+}
+
+/** Response of `GET /api/login`. */
+export interface LoginUrl {
+  url: string;
+}
+
+export function isLoginUrl(value: unknown): value is LoginUrl {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as LoginUrl).url === "string"
+  );
+}

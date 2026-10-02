@@ -23,6 +23,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "worker/drive.ts", "worker-configuration.d.ts"],
+  "include": ["shared", "src", "worker-configuration.d.ts"],
   "references": []
 }
