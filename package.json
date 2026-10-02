@@ -15,6 +15,7 @@
     "deploy": "wrangler deploy",
     "dev_wrangler": "npm run seedLocalD1 && wrangler dev",
     "db": "wrangler d1 execute karl --local --command=\"SELECT * FROM users;\"",
+    "db-del": "wrangler d1 execute karl --local --command=\"DELETE FROM users;\"",
     "predeploy": "wrangler d1 migrations apply DB --remote",
     "seedLocalD1": "wrangler d1 migrations apply DB --local"
   },

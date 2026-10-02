@@ -1,13 +1,16 @@
-import GoogleToken, { RefreshTokenResult } from "../google/token";
+import GoogleToken from "../google/token";
 import {
   RequestPayload,
   ResponsePayload,
-  isRequestPayloadLogin,
   isRequestPayloadCode,
   isRequestPayloadActive,
-  isRequestPayloadRefresh,
+  isLoginRequest,
+  isCodeRequest,
+  isActiveRequest,
 } from "../payload-types";
-import UsersDB, { User } from "../db";
+import UsersDB, { UserTableRow } from "../db";
+import { getPayload, getSid } from "./utils";
+import { ActiveSession, LoginUrl } from "../../src/server";
 
 type AccessData = {
   access_token: string;
@@ -29,32 +32,24 @@ export async function loginHandler(
   secret: string,
   db: Env["DB"],
 ) {
-  let payload: RequestPayload | null = null;
-  try {
-    payload = await request.json();
-  } catch (e) {
-    console.warn(e);
-    const payload: ResponsePayload = {
-      type: "ERROR",
-      msg: "Invalid JSON",
-    };
-    return new Response(JSON.stringify(payload), { status: 404 });
-  }
+  const payload: RequestPayload | null = await getPayload(request);
+  const url = new URL(request.url);
 
   const client = new GoogleToken(secret);
-  if (isRequestPayloadLogin(payload)) {
-    const payload: ResponsePayload = {
-      type: "LOGIN",
+  if (isLoginRequest(url)) {
+    const payload: LoginUrl = {
       url: client.getLoginUrl(),
     };
     return new Response(JSON.stringify(payload), { status: 200 });
   }
-  if (isRequestPayloadCode(payload)) {
+
+  if (isCodeRequest(url) && isRequestPayloadCode(payload)) {
     const access = (await client.getAccessToken(
       payload.code ?? "",
     )) as AccessData | null;
     if (!access || access.id_token === undefined)
-      return new Response(JSON.stringify(access), { status: 404 });
+      return new Response(JSON.stringify("Page not found."), { status: 404 });
+
     const jwtPayload = access.id_token.split(".")[1];
     const decoded = JSON.parse(
       atob(jwtPayload.replace(/-/g, "+").replace(/_/g, "/")),
@@ -69,86 +64,55 @@ export async function loginHandler(
       email: decoded.email,
       login: user ? user.login : karlLogin,
     };
+
+    const userRow: UserTableRow = {
+      email: decoded.email,
+      login: user ? user.karlLogin : karlLogin,
+      access_token: access.access_token,
+      access_expires: convertExpireToDate(access.expires_in),
+      refresh_token: access.refresh_token,
+      refresh_expires: access.refresh_token_expires_in
+        ? convertExpireToDate(access.refresh_token_expires_in)
+        : null,
+      session_id: crypto.randomUUID(),
+    };
+
     if (user === null) {
-      await usersDb.addUser({
-        email: decoded.email,
-        login: karlLogin,
-        accessToken: access.access_token,
-        accessExpires: convertExpireToDate(access.expires_in),
-        refreshToken: access.refresh_token,
-        refreshExpires: access.refresh_token_expires_in
-          ? convertExpireToDate(access.refresh_token_expires_in)
-          : null,
-      });
+      await usersDb.addUser(userRow);
     } else {
-      await usersDb.updateUserTokens(decoded.email, {
-        accessToken: access.access_token,
-        accessExpires: convertExpireToDate(access.expires_in),
-        refreshToken: access.refresh_token,
-        refreshExpires: access.refresh_token_expires_in
-          ? convertExpireToDate(access.refresh_token_expires_in)
-          : null,
-      });
+      await usersDb.updateUserTokens(userRow);
     }
 
     return new Response(JSON.stringify(responsePayload), {
       status: 200,
+      headers: {
+        "Set-Cookie": `sid=${userRow.session_id}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=20`,
+      },
     });
   }
-  if (isRequestPayloadActive(payload)) {
+
+  if (isActiveRequest(url)) {
+    const sid = getSid(request);
+    if (!sid) return new Response("Page not found.", { status: 404 });
+
     const usersDb = new UsersDB(db);
-    const user = await usersDb.getUser(payload.email ?? "");
-    let responsePayload: ResponsePayload = {
-      type: "ACTIVE",
-      email: payload.email,
-      loggedIn: false,
-      expiresIn: -1,
+    const user = await usersDb.getUserBySid(sid);
+    if (!user) return new Response("Page not found.", { status: 404 });
+
+    const result = await client.checkGoogleTokenValidity(user.access_token);
+    if (!result.valid) return new Response("Page not found.", { status: 404 });
+
+    let responsePayload: ActiveSession = {
+      userEmail: user.email,
+      karlEmail: user.login ?? "Invalid",
     };
-    if (user) {
-      const token = user.accessToken;
-      const result = await client.checkGoogleTokenValidity(token);
-      responsePayload.expiresIn = result.expires_in ?? -1;
-      if (result.valid) responsePayload.loggedIn = true;
-    }
 
     return new Response(JSON.stringify(responsePayload), {
       status: 200,
     });
   }
-  if (isRequestPayloadRefresh(payload)) {
-    const usersDb = new UsersDB(db);
-    let responsePayload: ResponsePayload = {
-      type: "ACTIVE",
-      email: payload.email,
-      loggedIn: false,
-      expiresIn: -1,
-    };
-    const user = (await usersDb.getUser(payload.email)) as User | null;
-    if (user?.refreshToken) {
-      try {
-        const result = (await client.refreshAccessToken(
-          user.refreshToken,
-        )) as RefreshTokenResult;
-        await usersDb.updateUserTokens(payload.email, {
-          accessToken: result.access_token,
-          accessExpires: convertExpireToDate(result.expires_in.toString()),
-        });
-        responsePayload.loggedIn = true;
-        responsePayload.expiresIn = result.expires_in;
-      } catch (e) {
-        console.warn("Token refresh failed");
-      }
-    }
-    return new Response(JSON.stringify(responsePayload), {
-      status: 200,
-    });
-  }
 
-  const errorPayload: ResponsePayload = {
-    type: "ERROR",
-    msg: "Unknown request",
-  };
-  return new Response(JSON.stringify(errorPayload), { status: 404 });
+  return new Response("Page not found.", { status: 404 });
 }
 
 export default loginHandler;

@@ -16,14 +16,6 @@ class RequestType {
   isLogin() {
     return this.#path === "/login" || this.#path === "/api/login";
   }
-
-  isMCP() {
-    return this.#path === "/mcp" || this.#path === "/api/mcp";
-  }
-
-  isTest() {
-    return this.#path === "/test" || this.#path === "/api/test";
-  }
 }
 
 export default {
@@ -34,17 +26,13 @@ export default {
         status: 500,
       });
 
-    const requestType = new RequestType(request);
-
-    if (requestType.isLogin()) return loginHandler(request, secret, env.DB);
-
-    // TODO(pkudla) To be removed
-    if (requestType.isTest()) {
+    try {
+      return loginHandler(request, secret, env.DB);
+    } catch {
+      return new Response(JSON.stringify({ error: "Page not found" }), {
+        status: 404,
+      });
     }
-
-    return new Response(JSON.stringify({ error: "Page not found" }), {
-      status: 404,
-    });
   },
   async email(
     message: ForwardableEmailMessage,

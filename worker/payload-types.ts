@@ -1,17 +1,33 @@
+const api = (path: string) => `/api/${path}`;
+
+export const ApiPaths = {
+  login: api("login"),
+  code: api("code"),
+  logout: api("logout"),
+  active: api("active"),
+} as const;
+
 type RequestPayloadLogin = {
   type: "LOGIN";
 };
 
-export function isRequestPayloadLogin(
-  data: unknown,
-): data is RequestPayloadLogin {
-  return (
-    typeof data === "object" && data !== null && (data as any).type === "LOGIN"
-  );
+export function isLoginRequest(url: URL) {
+  return url.pathname === ApiPaths.login;
+}
+
+export function isLogoutRequest(url: URL) {
+  return url.pathname === ApiPaths.logout;
+}
+
+export function isCodeRequest(url: URL) {
+  return url.pathname === ApiPaths.code;
+}
+
+export function isActiveRequest(url: URL) {
+  return url.pathname === ApiPaths.active;
 }
 
 type RequestPayloadCode = {
-  type: "CODE";
   code: string;
 };
 
@@ -21,13 +37,11 @@ export function isRequestPayloadCode(
   return (
     typeof data === "object" &&
     data !== null &&
-    (data as any).type === "CODE" &&
     typeof (data as any).code === "string"
   );
 }
 
 type RequestPayloadActive = {
-  type: "ACTIVE";
   email: string;
 };
 

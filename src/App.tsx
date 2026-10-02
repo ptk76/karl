@@ -1,164 +1,69 @@
 import React, { useEffect, useState } from "react";
 import style from "./App.module.css";
-
-import {
-  RequestPayload,
-  ResponsePayload,
-  isResponsePayloadLogin,
-  isResponsePayloadProfile,
-} from "../worker/payload-types";
+import { getActiveSession, getLoginUrl, requestToken } from "./server";
 
 function navigateTo(url: string) {
   window.location.href = url;
 }
 
-/** localStorage throws in private modes and with site data blocked. */
-const storage = {
-  get(key: string): string | null {
-    try {
-      return localStorage.getItem(key);
-    } catch {
-      return null;
-    }
-  },
-  set(key: string, value: string) {
-    try {
-      localStorage.setItem(key, value);
-    } catch {
-      /* ignore — the session still works, it just will not be remembered */
-    }
-  },
-  remove(key: string) {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      /* ignore */
-    }
-  },
-};
-
-async function postToLogin(body: RequestPayload): Promise<ResponsePayload> {
-  const response = await fetch("/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
-  }
-  return (await response.json()) as ResponsePayload;
-}
-
 function App(props: { code: string | null }): React.JSX.Element {
-  const [loginUrl, setLoginUrl] = useState("");
-  const [email, setEmail] = useState("");
-  const [login, setLogin] = useState(false);
-  const [error, setError] = useState("");
+  const [activeSession, setActiveSession] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [karlEmail, setKarlEmail] = useState("");
+  const [error, setError] = useState("");
 
   const loginGoogle = async () => {
-    if (loginUrl === "") return;
-    navigateTo(loginUrl);
+    setError("");
+    setBusy(true);
+
+    setError("");
+    const loginUrl = await getLoginUrl();
+    if (!loginUrl) {
+      setError("Could not reach Dear Karl. Check your connection and retry.");
+      setBusy(false);
+      return;
+    }
+    navigateTo(loginUrl.url);
+    setBusy(false);
   };
+
   const logoutGoogle = async () => {
-    storage.remove("current_user");
-    setEmail("");
-    setLogin(false);
     navigateTo("/");
   };
 
-  const getLoginUrl = async () => {
-    setError("");
-
-    try {
-      const payload = await postToLogin({ type: "LOGIN" });
-      if (isResponsePayloadLogin(payload)) setLoginUrl(payload.url);
-      else throw new Error("Unexpected response from the server");
-    } catch (error) {
-      setLoginUrl("");
-      setError("Could not reach Dear Karl. Check your connection and retry.");
-    }
-  };
-
-  const requestToken = async (code: string) => {
+  const initToken = async (code: string) => {
     setError("");
     setBusy(true);
 
-    try {
-      const payload = await postToLogin({ type: "CODE", code });
-      if (isResponsePayloadProfile(payload)) {
-        storage.set("current_user", payload.email);
-        setEmail(payload.email);
-        setLogin(await isUserLoggedIn(payload.email));
-      } else {
-        throw new Error("Unexpected response from the server");
-      }
-    } catch {
-      setError("Signing in failed. Please try again.");
-      await getLoginUrl();
-    } finally {
-      setBusy(false);
-      // Keep the authorization code out of the address bar and history.
-      window.history.replaceState({}, "", "/");
-    }
+    window.history.replaceState({}, "", "/");
+    await requestToken(code);
+    setBusy(false);
+    navigateTo("/");
   };
 
-  const isUserLoggedIn = async (address: string): Promise<boolean> => {
-    if (!address) return false;
-    try {
-      const result = (await postToLogin({
-        type: "ACTIVE",
-        email: address,
-      })) as ResponsePayload & { loggedIn?: boolean };
-      const loggedIn = Boolean(result.loggedIn);
-      setLogin(loggedIn);
-      return loggedIn;
-    } catch {
-      setError("Could not check your session status.");
-      return false;
-    }
-  };
-
-  const refreshToken = async (address: string) => {
-    if (!address) return;
-    setError("");
+  const init = async () => {
     setBusy(true);
-    try {
-      const result = (await postToLogin({
-        type: "REFRESH",
-        email: address,
-      })) as ResponsePayload & { loggedIn?: boolean };
-      setLogin(Boolean(result.loggedIn));
-      if (!result.loggedIn) setError("Could not refresh your session.");
-    } catch {
-      setError("Could not refresh your session.");
-    } finally {
-      setBusy(false);
+    const session = await getActiveSession();
+    if (session) {
+      setActiveSession(true);
+      setUserEmail(session.userEmail);
+      setKarlEmail(session.karlEmail);
+    } else {
+      setActiveSession(false);
+      setUserEmail("");
+      setKarlEmail("");
     }
-  };
-
-  const test = async () => {
-    const body: RequestPayload = {
-      type: "TEST",
-      email,
-    };
-    const response = await fetch("/test", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-    console.info("USER", email, await response.text());
+    setBusy(false);
   };
 
   useEffect(() => {
-    const currentUser = storage.get("current_user");
-    if (currentUser) {
-      setEmail(currentUser);
-      isUserLoggedIn(currentUser);
-    }
+    setError("");
+
     if (props.code) {
-      requestToken(props.code);
+      initToken(props.code);
     } else {
-      getLoginUrl();
+      init();
     }
     return () => {};
   }, []);
@@ -176,30 +81,25 @@ function App(props: { code: string | null }): React.JSX.Element {
           {error}
         </p>
       )}
-      {email !== "" && (
+      {activeSession && (
         <>
           <p>
-            Signed in as <strong>{email}</strong> —{" "}
-            {login ? "session active" : "session expired"}
+            Signed in as <strong>{userEmail}</strong>
+          </p>
+          <p>
+            Your Karl email: <strong>{karlEmail}</strong>
           </p>
           <button onClick={logoutGoogle}>Log out</button>
-          <button onClick={() => refreshToken(email)} disabled={busy}>
-            {busy ? "Working…" : "Refresh session"}
-          </button>
         </>
       )}
-      {email === "" && loginUrl && (
+      {!activeSession && (
         <button onClick={loginGoogle}>Log in with Google</button>
       )}
-      {email === "" && !loginUrl && !error && <p>Loading…</p>}
+      {busy && <p>Loading…</p>}
 
-      {email === "" && error && (
-        <button onClick={getLoginUrl}>Try again</button>
+      {!activeSession && error && (
+        <button onClick={loginGoogle}>Try again</button>
       )}
-
-      <div>
-        <button onClick={test}>TEST</button>
-      </div>
     </div>
   );
 }

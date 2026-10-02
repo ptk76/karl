@@ -35,7 +35,7 @@ export async function emailHandler(
   const email = await parser.parse(await rawEmail.arrayBuffer());
 
   const diagnosticTo = (env as { DIAGNOSTIC_EMAIL?: string }).DIAGNOSTIC_EMAIL;
-
+  console.info("EMAIL", message);
   if (senderAuthenticationFailed(message)) {
     await sendDiagnosticEmail(
       creds,
@@ -61,10 +61,10 @@ export async function emailHandler(
   const client = new GoogleToken(secret);
 
   let accessToken = "";
-  if (client.isTokenValid(user.accessExpires)) {
-    accessToken = user.accessToken;
+  if (client.isTokenValid(user.access_expires)) {
+    accessToken = user.access_token;
   } else {
-    if (user.refreshToken === null) {
+    if (!user.refresh_token) {
       await sendEmail(creds, {
         to: user.email,
         subject: authError.subject,
@@ -73,10 +73,11 @@ export async function emailHandler(
       return;
     }
     try {
-      const refreshed = await client.refreshAccessToken(user.refreshToken);
-      await db.updateUserTokens(user.email, {
-        accessToken: refreshed.access_token,
-        accessExpires: Date.now() + refreshed.expires_in * 1000,
+      const refreshed = await client.refreshAccessToken(user.refresh_token);
+      await db.updateUserTokens({
+        email: user.email,
+        access_token: refreshed.access_token,
+        access_expires: Date.now() + refreshed.expires_in * 1000,
       });
       accessToken = refreshed.access_token;
     } catch (e: any) {

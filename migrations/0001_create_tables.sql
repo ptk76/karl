@@ -4,5 +4,6 @@ CREATE TABLE IF NOT EXISTS users (
     access_token TEXT NOT NULL,
     access_expires INTEGER NOT NULL,
     refresh_token TEXT,
-    refresh_expires INTEGER
+    refresh_expires INTEGER,
+    session_id TEXT
 );
