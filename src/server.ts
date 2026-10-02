@@ -1,5 +1,6 @@
 import {
   type ActiveSession,
+  ApiPaths,
   type LoginUrl,
   isActiveSession,
   isLoginUrl,
@@ -11,7 +12,7 @@ export { isActiveSession, isLoginUrl };
 
 export const getActiveSession = async (): Promise<ActiveSession | null> => {
   try {
-    const response = await fetch("/api/active");
+    const response = await fetch(ApiPaths.active);
     if (!response.ok) return null;
     const result = await response.json();
     return isActiveSession(result) ? result : null;
@@ -22,7 +23,7 @@ export const getActiveSession = async (): Promise<ActiveSession | null> => {
 
 export const getLoginUrl = async (): Promise<LoginUrl | null> => {
   try {
-    const response = await fetch("/api/login");
+    const response = await fetch(ApiPaths.login);
     if (!response.ok) return null;
     const result = await response.json();
     return isLoginUrl(result) ? result : null;
@@ -31,9 +32,15 @@ export const getLoginUrl = async (): Promise<LoginUrl | null> => {
   }
 };
 
+export const logout = async () => {
+  try {
+    await fetch(ApiPaths.logout);
+  } catch {}
+};
+
 export const requestToken = async (code: string): Promise<LoginUrl | null> => {
   try {
-    const response = await fetch("/api/code", {
+    const response = await fetch(ApiPaths.code, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code: code }),

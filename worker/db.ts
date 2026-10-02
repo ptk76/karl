@@ -25,6 +25,17 @@ class UsersDB {
     return row;
   }
 
+  async removeUser(email: string): Promise<UserTableRow | null> {
+    const row = await this.db
+      .prepare(`DELETE FROM users WHERE email = ?`)
+      .bind(email)
+      .first<UserTableRow>();
+
+    if (!row) return null;
+
+    return row;
+  }
+
   /**
    * Fetch a user by session. Returns null if not found.
    */

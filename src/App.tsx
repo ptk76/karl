@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import style from "./App.module.css";
-import { getActiveSession, getLoginUrl, requestToken } from "./server";
+import { getActiveSession, getLoginUrl, logout, requestToken } from "./server";
 
 function navigateTo(url: string) {
   window.location.href = url;
@@ -29,6 +29,8 @@ function App(props: { code: string | null }): React.JSX.Element {
   };
 
   const logoutGoogle = async () => {
+    setBusy(true);
+    await logout();
     navigateTo("/");
   };
 

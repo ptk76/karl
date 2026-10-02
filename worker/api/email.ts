@@ -8,6 +8,7 @@ import sendEmail, {
 } from "../send-email";
 import { authError, driveError, unknownUser } from "./messages";
 import GoogleToken from "../google/token";
+import { getValidToken } from "./utils";
 
 /** Google Drive rejects these in names; also cap the length. */
 function safeFileName(name: string): string {
@@ -60,27 +61,12 @@ export async function emailHandler(
   const secret = env.GOOGLE_CLIENT_SECRET;
   const client = new GoogleToken(secret);
 
-  let accessToken = "";
+  let accessToken: string | null = "";
   if (client.isTokenValid(user.access_expires)) {
     accessToken = user.access_token;
   } else {
-    if (!user.refresh_token) {
-      await sendEmail(creds, {
-        to: user.email,
-        subject: authError.subject,
-        text: authError.message,
-      });
-      return;
-    }
-    try {
-      const refreshed = await client.refreshAccessToken(user.refresh_token);
-      await db.updateUserTokens({
-        email: user.email,
-        access_token: refreshed.access_token,
-        access_expires: Date.now() + refreshed.expires_in * 1000,
-      });
-      accessToken = refreshed.access_token;
-    } catch (e: any) {
+    accessToken = await getValidToken(user, client, db);
+    if (accessToken === null) {
       await sendEmail(creds, {
         to: user.email,
         subject: authError.subject,

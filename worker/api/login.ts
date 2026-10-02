@@ -8,9 +8,10 @@ import {
   isActiveRequest,
   ActiveSession,
   LoginUrl,
+  isLogoutRequest,
 } from "../../shared/api";
 import UsersDB, { UserTableRow } from "../db";
-import { getPayload, getSid } from "./utils";
+import { getPayload, getSid, getValidToken } from "./utils";
 
 type AccessData = {
   access_token: string;
@@ -36,6 +37,19 @@ export async function loginHandler(
   const url = new URL(request.url);
 
   const client = new GoogleToken(secret);
+  if (isLogoutRequest(url)) {
+    const sid = getSid(request);
+    if (!sid)
+      return new Response(JSON.stringify("Page not found."), { status: 404 });
+
+    const usersDb = new UsersDB(db);
+    const user = await usersDb.getUserBySid(sid);
+    if (!user || !user.refresh_token)
+      return new Response(JSON.stringify("Page not found."), { status: 404 });
+
+    await client.revokeGoogleToken(user.refresh_token);
+    await usersDb.removeUser(user.email);
+  }
   if (isLoginRequest(url)) {
     const payload: LoginUrl = {
       url: client.getLoginUrl(),
@@ -83,10 +97,12 @@ export async function loginHandler(
       await usersDb.updateUserTokens(userRow);
     }
 
+    const cookieEpires =
+      (access.refresh_token_expires_in as unknown as number) / 1000 - 60;
     return new Response(JSON.stringify(responsePayload), {
       status: 200,
       headers: {
-        "Set-Cookie": `sid=${userRow.session_id}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=20`,
+        "Set-Cookie": `sid=${userRow.session_id}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${cookieEpires}`,
       },
     });
   }
@@ -99,8 +115,8 @@ export async function loginHandler(
     const user = await usersDb.getUserBySid(sid);
     if (!user) return new Response("Page not found.", { status: 404 });
 
-    const result = await client.checkGoogleTokenValidity(user.access_token);
-    if (!result.valid) return new Response("Page not found.", { status: 404 });
+    const accessToken = await getValidToken(user, client, usersDb);
+    if (!accessToken) return new Response("Page not found.", { status: 404 });
 
     let responsePayload: ActiveSession = {
       userEmail: user.email,

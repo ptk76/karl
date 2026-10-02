@@ -2,22 +2,6 @@ import loginHandler from "./api/login";
 import emailHandler from "./api/email";
 import { readElasticCredentials, sendDiagnosticEmail } from "./send-email";
 
-class RequestType {
-  readonly #path;
-  constructor(request: Request) {
-    try {
-      const url = new URL(request.url);
-      this.#path = url.pathname.replace(/\/+$/, "") || "/";
-    } catch {
-      this.#path = "";
-    }
-  }
-
-  isLogin() {
-    return this.#path === "/login" || this.#path === "/api/login";
-  }
-}
-
 export default {
   async fetch(request: Request, env: Env) {
     const secret = env.GOOGLE_CLIENT_SECRET;
