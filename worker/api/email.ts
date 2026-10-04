@@ -21,9 +21,15 @@ function safeFileName(name: string): string {
  * else (header absent, unknown verdict) is let through, so a change in
  * Cloudflare's header format cannot silently drop legitimate mail.
  */
-function senderAuthenticationFailed(message: ForwardableEmailMessage): boolean {
+export function senderAuthenticationFailed(
+  message: ForwardableEmailMessage,
+): boolean {
   const results = message.headers.get("Authentication-Results") ?? "";
-  return /dmarc=fail/i.test(results) || /spf=fail/i.test(results);
+  // "hardfail" is the historic spelling of an SPF fail that Gmail still uses
+  // in Authentication-Results; softfail/neutral are weaker and let through.
+  return (
+    /dmarc=fail/i.test(results) || /spf=(?:fail|hardfail)/i.test(results)
+  );
 }
 
 export async function emailHandler(
@@ -36,7 +42,6 @@ export async function emailHandler(
   const email = await parser.parse(await rawEmail.arrayBuffer());
 
   const diagnosticTo = (env as { DIAGNOSTIC_EMAIL?: string }).DIAGNOSTIC_EMAIL;
-  console.info("EMAIL", message);
   if (senderAuthenticationFailed(message)) {
     await sendDiagnosticEmail(
       creds,
