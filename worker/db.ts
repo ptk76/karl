@@ -1,8 +1,8 @@
 export interface UserTableRow {
   email: string;
   login?: string;
-  access_token: string;
-  access_expires: number;
+  access_token?: string | null;
+  access_expires?: number | null;
   refresh_token?: string | null;
   refresh_expires?: number | null;
   session_id?: string | null;
@@ -95,6 +95,21 @@ class UsersDB {
         user.session_id,
         user.email,
       )
+      .run();
+  }
+
+  async logout(email: string): Promise<void> {
+    await this.db
+      .prepare(
+        `UPDATE users
+         SET access_token = null,
+             access_expires = null,
+             refresh_token = null,
+             refresh_expires = null,
+             session_id = null
+         WHERE email = ?`,
+      )
+      .bind(email)
       .run();
   }
 }

@@ -48,7 +48,7 @@ export async function loginHandler(
       return new Response(JSON.stringify("Page not found."), { status: 404 });
 
     await client.revokeGoogleToken(user.refresh_token);
-    await usersDb.removeUser(user.email);
+    await usersDb.logout(user.email);
   }
   if (isLoginRequest(url)) {
     const payload: LoginUrl = {

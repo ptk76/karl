@@ -87,9 +87,8 @@ function App(props: { code: string | null }): React.JSX.Element {
         <>
           <p>
             Signed in as <strong>{userEmail}</strong>
-          </p>
-          <p>
-            Your Karl email: <strong>{karlEmail}</strong>
+            <br />
+            Your Karl email: <strong>{karlEmail}@przemekkudla.pl</strong>
           </p>
           <button onClick={logoutGoogle}>Log out</button>
         </>

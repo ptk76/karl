@@ -36,3 +36,14 @@ You have sent an email to me, but I didn't recognize you. Please visit Dear Karl
 Regards, Karl
 `,
 } satisfies EmailContent;
+
+export const wrongRecipient = {
+  subject: "The email recipient does not exist",
+  message: `
+Hello!
+<br><br>
+You have sent an email to an unknown email recipient. Please visit Dear Karl's page and check a Karl email assigned to you: <a href="https://karl.przemekkudla.pl">dearkarl.com</a>
+<br><br>
+Regards, Karl
+`,
+} satisfies EmailContent;

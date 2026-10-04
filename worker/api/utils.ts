@@ -25,7 +25,8 @@ export async function getValidToken(
   client: GoogleToken,
   db: UsersDB,
 ): Promise<string | null> {
-  if (client.isTokenValid(user.access_expires)) return user.access_token;
+  if (client.isTokenValid(user.access_expires ?? 0))
+    return user.access_token ?? null;
   if (!user.refresh_token) return null;
 
   try {

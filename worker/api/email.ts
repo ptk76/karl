@@ -6,7 +6,7 @@ import sendEmail, {
   escapeHtml,
   sendDiagnosticEmail,
 } from "../send-email";
-import { authError, driveError, unknownUser } from "./messages";
+import { authError, driveError, unknownUser, wrongRecipient } from "./messages";
 import GoogleToken from "../google/token";
 import { getValidToken } from "./utils";
 
@@ -27,9 +27,7 @@ export function senderAuthenticationFailed(
   const results = message.headers.get("Authentication-Results") ?? "";
   // "hardfail" is the historic spelling of an SPF fail that Gmail still uses
   // in Authentication-Results; softfail/neutral are weaker and let through.
-  return (
-    /dmarc=fail/i.test(results) || /spf=(?:fail|hardfail)/i.test(results)
-  );
+  return /dmarc=fail/i.test(results) || /spf=(?:fail|hardfail)/i.test(results);
 }
 
 export async function emailHandler(
@@ -63,12 +61,21 @@ export async function emailHandler(
     return;
   }
 
+  if (user.login !== email.to) {
+    await sendEmail(creds, {
+      to: message.from,
+      subject: wrongRecipient.subject,
+      text: wrongRecipient.message,
+    });
+    return;
+  }
+
   const secret = env.GOOGLE_CLIENT_SECRET;
   const client = new GoogleToken(secret);
 
   let accessToken: string | null = "";
-  if (client.isTokenValid(user.access_expires)) {
-    accessToken = user.access_token;
+  if (client.isTokenValid(user.access_expires ?? 0)) {
+    accessToken = user.access_token!;
   } else {
     accessToken = await getValidToken(user, client, db);
     if (accessToken === null) {
