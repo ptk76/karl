@@ -6,11 +6,16 @@
 
 const api = (path: string) => `/api/${path}`;
 
+/** MCP (Model Context Protocol) endpoint, served from the worker itself. */
+export const MCP_PATH = "/mcp";
+
 export const ApiPaths = {
   login: api("login"),
   code: api("code"),
   logout: api("logout"),
   active: api("active"),
+  tokens: api("tokens"),
+  tokensRevoke: api("tokens/revoke"),
 } as const;
 
 export function isLoginRequest(url: URL) {
@@ -27,6 +32,18 @@ export function isCodeRequest(url: URL) {
 
 export function isActiveRequest(url: URL) {
   return url.pathname === ApiPaths.active;
+}
+
+export function isTokensRequest(url: URL) {
+  return url.pathname === ApiPaths.tokens;
+}
+
+export function isTokensRevokeRequest(url: URL) {
+  return url.pathname === ApiPaths.tokensRevoke;
+}
+
+export function isMcpRequest(url: URL) {
+  return url.pathname === MCP_PATH;
 }
 
 type RequestPayloadLogin = {
@@ -173,4 +190,78 @@ export function isLoginUrl(value: unknown): value is LoginUrl {
     value !== null &&
     typeof (value as LoginUrl).url === "string"
   );
+}
+
+/** Body of `POST /api/tokens` — mint a Personal Access Token. */
+export type CreateTokenRequest = {
+  name?: string;
+  expiresInDays?: number;
+};
+
+export function isCreateTokenRequest(data: unknown): data is CreateTokenRequest {
+  if (typeof data !== "object" || data === null) return false;
+  const d = data as Record<string, unknown>;
+  // A revoke payload carries `id`; never treat it as a create.
+  if (d.id !== undefined) return false;
+  if (d.name !== undefined && typeof d.name !== "string") return false;
+  if (d.expiresInDays !== undefined && typeof d.expiresInDays !== "number")
+    return false;
+  return true;
+}
+
+/** Body of `POST /api/tokens/revoke`. */
+export type RevokeTokenRequest = {
+  id: number;
+};
+
+export function isRevokeTokenRequest(data: unknown): data is RevokeTokenRequest {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    typeof (data as RevokeTokenRequest).id === "number"
+  );
+}
+
+/** A token as listed (never contains the raw token or its hash). */
+export interface ApiTokenSummary {
+  id: number;
+  name: string;
+  prefix: string;
+  createdAt: number;
+  expiresAt: number | null;
+  lastUsedAt: number | null;
+}
+
+export function isApiTokenSummary(value: unknown): value is ApiTokenSummary {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as ApiTokenSummary).id === "number" &&
+    typeof (value as ApiTokenSummary).name === "string" &&
+    typeof (value as ApiTokenSummary).prefix === "string" &&
+    typeof (value as ApiTokenSummary).createdAt === "number" &&
+    ((value as ApiTokenSummary).expiresAt === null ||
+      typeof (value as ApiTokenSummary).expiresAt === "number") &&
+    ((value as ApiTokenSummary).lastUsedAt === null ||
+      typeof (value as ApiTokenSummary).lastUsedAt === "number")
+  );
+}
+
+/**
+ * Response of `POST /api/tokens`. The plaintext `token` is included only
+ * here — it is never stored, so this is the sole chance to see it.
+ */
+export interface ApiTokenCreated extends ApiTokenSummary {
+  token: string;
+}
+
+export function isApiTokenCreated(value: unknown): value is ApiTokenCreated {
+  return (
+    isApiTokenSummary(value) &&
+    typeof (value as ApiTokenCreated).token === "string"
+  );
+}
+
+export function isApiTokensList(value: unknown): value is ApiTokenSummary[] {
+  return Array.isArray(value) && value.every(isApiTokenSummary);
 }

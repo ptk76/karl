@@ -14,16 +14,18 @@
     "check": "tsc && wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
     "dev_wrangler": "npm run seedLocalD1 && wrangler dev",
-    "db": "wrangler d1 execute karl --local --command=\"SELECT * FROM users;\"",
+    "db": "wrangler d1 execute karl --local --command=\"SELECT * FROM users; SELECT * FROM api_tokens;\"",
     "db-del": "wrangler d1 execute karl --local --command=\"DELETE FROM users;\"",
     "predeploy": "wrangler d1 migrations apply DB --remote",
     "seedLocalD1": "wrangler d1 migrations apply DB --local"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.20.0",
+    "@modelcontextprotocol/server": "^2.3.0",
     "postal-mime": "^3.0.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.30.1",

@@ -3,6 +3,9 @@ export interface DriveFile {
   name: string;
 }
 
+/** Cap for file contents read via MCP (bytes), before decoding. */
+const MAX_CONTENT_BYTES = 256 * 1024;
+
 /** Raised when Drive rejects the token, so callers can tell this apart. */
 export class DriveAuthError extends Error {
   constructor(message: string) {
@@ -104,22 +107,11 @@ class GoogleDrive {
     const results = [];
     for (const file of files) {
       let content;
-
-      if (file.mimeType.startsWith("application/vnd.google-apps")) {
-        // Google-native file (Doc/Sheet/Slide) — export as plain text
-        const exportRes = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${file.id}/export?mimeType=text/plain`,
-          { headers: this.#headers },
-        );
-        content = await exportRes.text();
-      } else {
-        // Regular file (e.g. .txt, .csv) — download directly
-        const downloadRes = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`,
-          { headers: this.#headers },
-        );
-        content = await downloadRes.text();
-      }
+      const { content: fileContent } = await this.getFileContent(
+        file.id,
+        file.mimeType,
+      );
+      content = fileContent;
 
       results.push({
         id: file.id,
@@ -129,6 +121,109 @@ class GoogleDrive {
       });
     }
     return results;
+  }
+
+  /**
+   * File metadata (no content) within the dearkarl folder. Used by the MCP
+   * `list_files` tool — do not use `fetchAllFiles` for listing, it downloads
+   * every file body.
+   */
+  async listFiles(folderId: string) {
+    const filesQuery = encodeURIComponent(
+      `'${folderId}' in parents and trashed = false`,
+    );
+    const filesRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${filesQuery}&fields=files(id,name,mimeType,size,modifiedTime)`,
+      { headers: this.#headers },
+    );
+    if (!filesRes.ok) {
+      throw driveError(
+        filesRes.status,
+        await filesRes.text(),
+        "Failed to list files",
+      );
+    }
+
+    const filesData = (await filesRes.json()) as {
+      files?: Array<{
+        id: string;
+        name: string;
+        mimeType: string;
+        size?: string;
+        modifiedTime?: string;
+      }>;
+    };
+    return (filesData.files ?? []).map((f) => ({
+      id: f.id,
+      name: f.name,
+      mimeType: f.mimeType,
+      size: f.size ? Number(f.size) : null,
+      modifiedTime: f.modifiedTime ?? null,
+    }));
+  }
+
+  async getFileMeta(fileId: string) {
+    const metaRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType`,
+      { headers: this.#headers },
+    );
+    if (!metaRes.ok) {
+      throw driveError(
+        metaRes.status,
+        await metaRes.text(),
+        "Failed to fetch file metadata",
+      );
+    }
+    return (await metaRes.json()) as { id: string; name: string; mimeType: string };
+  }
+
+  /**
+   * Download a file's text content, capped at `MAX_CONTENT_BYTES`.
+   * Google-native docs (Doc/Sheet/Slide) are exported as text/plain;
+   * regular files (e.g. .txt) are downloaded directly.
+   */
+  async getFileContent(fileId: string, mimeType: string) {
+    if (mimeType.startsWith("application/vnd.google-apps")) {
+      const exportRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`,
+        { headers: this.#headers },
+      );
+      if (!exportRes.ok) {
+        throw driveError(
+          exportRes.status,
+          await exportRes.text(),
+          "Failed to export file",
+        );
+      }
+      return this.#readTruncated(exportRes);
+    }
+
+    const downloadRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: this.#headers },
+    );
+    if (!downloadRes.ok) {
+      throw driveError(
+        downloadRes.status,
+        await downloadRes.text(),
+        "Failed to download file",
+      );
+    }
+    return this.#readTruncated(downloadRes);
+  }
+
+  /**
+   * Read a response body as text, slicing to MAX_CONTENT_BYTES *before*
+   * decoding so an oversized email cannot blow up memory.
+   */
+  async #readTruncated(res: Response) {
+    const buf = await res.arrayBuffer();
+    const truncated = buf.byteLength > MAX_CONTENT_BYTES;
+    const bytes = new Uint8Array(buf).slice(0, MAX_CONTENT_BYTES);
+    const content =
+      new TextDecoder().decode(bytes) +
+      (truncated ? "\n…[truncated at 256KB]…" : "");
+    return { content, truncated };
   }
 
   async pushFile(folderId: string, name: string, payload: string) {
