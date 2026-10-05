@@ -12,6 +12,7 @@ import {
 } from "../../shared/api";
 import UsersDB, { UserTableRow } from "../db";
 import { getPayload, getSid, getValidToken } from "./utils";
+import ErrorResponse, { ApiErrors } from "./errors";
 
 type AccessData = {
   access_token: string;
@@ -39,13 +40,13 @@ export async function loginHandler(
   const client = new GoogleToken(secret);
   if (isLogoutRequest(url)) {
     const sid = getSid(request);
-    if (!sid)
-      return new Response(JSON.stringify("Page not found."), { status: 404 });
+    if (!sid) return new ErrorResponse(ApiErrors.LogoutNoSid);
 
     const usersDb = new UsersDB(db);
     const user = await usersDb.getUserBySid(sid);
-    if (!user || !user.refresh_token)
-      return new Response(JSON.stringify("Page not found."), { status: 404 });
+    if (!user) return new ErrorResponse(ApiErrors.LogoutNoUser);
+    if (!user.refresh_token)
+      return new ErrorResponse(ApiErrors.LogoutInvalidToken);
 
     await client.revokeGoogleToken(user.refresh_token);
     await usersDb.logout(user.email);
@@ -62,7 +63,7 @@ export async function loginHandler(
       payload.code ?? "",
     )) as AccessData | null;
     if (!access || access.id_token === undefined)
-      return new Response(JSON.stringify("Page not found."), { status: 404 });
+      return new ErrorResponse(ApiErrors.CodeInvalidToken);
 
     const jwtPayload = access.id_token.split(".")[1];
     const decoded = JSON.parse(
@@ -109,14 +110,14 @@ export async function loginHandler(
 
   if (isActiveRequest(url)) {
     const sid = getSid(request);
-    if (!sid) return new Response("Page not found.", { status: 404 });
+    if (!sid) return new ErrorResponse(ApiErrors.NoSid);
 
     const usersDb = new UsersDB(db);
     const user = await usersDb.getUserBySid(sid);
-    if (!user) return new Response("Page not found.", { status: 404 });
+    if (!user) return new ErrorResponse(ApiErrors.NoUser);
 
     const accessToken = await getValidToken(user, client, usersDb);
-    if (!accessToken) return new Response("Page not found.", { status: 404 });
+    if (!accessToken) return new ErrorResponse(ApiErrors.InvalidToken);
 
     let responsePayload: ActiveSession = {
       userEmail: user.email,
@@ -128,7 +129,7 @@ export async function loginHandler(
     });
   }
 
-  return new Response("Page not found.", { status: 404 });
+  return new ErrorResponse(ApiErrors.InvalidRequest);
 }
 
 export default loginHandler;
