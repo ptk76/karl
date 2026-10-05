@@ -97,31 +97,31 @@ describe("/api/active", () => {
     });
   }
 
-  it("returns 404 when there is no sid cookie", async () => {
+  it("returns 401 when there is no sid cookie", async () => {
     const res = await loginHandler(apiRequest("/api/active"), SECRET, noDb);
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(401);
     expect(mocks.getUserBySid).not.toHaveBeenCalled();
   });
 
-  it("returns 404 when no user matches the sid", async () => {
+  it("returns 401 when no user matches the sid", async () => {
     mocks.getUserBySid.mockResolvedValue(null);
 
     const res = await loginHandler(activeRequest(), SECRET, noDb);
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(401);
     expect(mocks.getUserBySid).toHaveBeenCalledWith(sid);
     expect(mocks.isTokenValid).not.toHaveBeenCalled();
   });
 
-  it("returns 404 when the user's Google token has expired", async () => {
+  it("returns 401 when the user's Google token has expired", async () => {
     mocks.getUserBySid.mockResolvedValue(userRow);
     mocks.isTokenValid.mockReturnValue(false);
     mocks.refreshAccessToken.mockRejectedValue(new Error("refresh failed"));
 
     const res = await loginHandler(activeRequest(), SECRET, noDb);
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(401);
     expect(mocks.isTokenValid).toHaveBeenCalled();
     expect(mocks.refreshAccessToken).toHaveBeenCalledWith("refresh-123");
   });

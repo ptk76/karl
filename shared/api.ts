@@ -84,19 +84,20 @@ export type RequestPayload =
   | RequestPayloadActive
   | RequestPayloadRefresh;
 
-type ResponsePayloadError = {
+export type ErrorPayload = {
   type: "ERROR";
+  code: string;
   msg: string;
 };
 
 export function isResponsePayloadError(
   data: unknown,
-): data is ResponsePayloadError {
+): data is ErrorPayload {
   return (
     typeof data === "object" &&
     data !== null &&
     (data as any).type === "ERROR" &&
-    typeof (data as any).msg === "string"
+    typeof (data as any).code === "string"
   );
 }
 
@@ -155,7 +156,7 @@ export function isResponsePayloadActive(
 }
 
 export type ResponsePayload =
-  | ResponsePayloadError
+  | ErrorPayload
   | ResponsePayloadLogin
   | ResponsePayloadProfile
   | ResponsePayloadActive;

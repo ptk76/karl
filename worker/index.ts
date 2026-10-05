@@ -1,5 +1,6 @@
 import loginHandler from "./api/login";
 import emailHandler from "./api/email";
+import ErrorResponse, { ApiErrors } from "./api/errors";
 import { readElasticCredentials, sendDiagnosticEmail } from "./send-email";
 
 export default {
@@ -12,10 +13,9 @@ export default {
 
     try {
       return loginHandler(request, secret, env.DB);
-    } catch {
-      return new Response(JSON.stringify({ error: "Page not found" }), {
-        status: 404,
-      });
+    } catch (error) {
+      console.error("login handler failed", error);
+      return new ErrorResponse(ApiErrors.InternalError);
     }
   },
   async email(
