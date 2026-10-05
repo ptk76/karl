@@ -84,22 +84,14 @@ export type RequestPayload =
   | RequestPayloadActive
   | RequestPayloadRefresh;
 
-export type ErrorPayload = {
-  type: "ERROR";
-  code: string;
-  msg: string;
-};
+import { type ErrorPayload } from "./errors";
+export { type ErrorPayload, isResponsePayloadError } from "./errors";
 
-export function isResponsePayloadError(
-  data: unknown,
-): data is ErrorPayload {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    (data as any).type === "ERROR" &&
-    typeof (data as any).code === "string"
-  );
-}
+export type ResponsePayload =
+  | ErrorPayload
+  | ResponsePayloadLogin
+  | ResponsePayloadProfile
+  | ResponsePayloadActive;
 
 type ResponsePayloadLogin = {
   type: "LOGIN";
@@ -154,12 +146,6 @@ export function isResponsePayloadActive(
     typeof (data as any).expiresIn === "number"
   );
 }
-
-export type ResponsePayload =
-  | ErrorPayload
-  | ResponsePayloadLogin
-  | ResponsePayloadProfile
-  | ResponsePayloadActive;
 
 /** Response of `GET /api/active`, as consumed by `src/server`. */
 export interface ActiveSession {

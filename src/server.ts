@@ -13,7 +13,10 @@ export { isActiveSession, isLoginUrl };
 export const getActiveSession = async (): Promise<ActiveSession | null> => {
   try {
     const response = await fetch(ApiPaths.active);
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.info(await response.json());
+      return null;
+    }
     const result = await response.json();
     return isActiveSession(result) ? result : null;
   } catch {
@@ -24,7 +27,10 @@ export const getActiveSession = async (): Promise<ActiveSession | null> => {
 export const getLoginUrl = async (): Promise<LoginUrl | null> => {
   try {
     const response = await fetch(ApiPaths.login);
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.info(await response.json());
+      return null;
+    }
     const result = await response.json();
     return isLoginUrl(result) ? result : null;
   } catch {
@@ -34,7 +40,8 @@ export const getLoginUrl = async (): Promise<LoginUrl | null> => {
 
 export const logout = async () => {
   try {
-    await fetch(ApiPaths.logout);
+    const response = await fetch(ApiPaths.logout);
+    if (!response.ok) console.info(await response.json());
   } catch {}
 };
 
@@ -45,7 +52,10 @@ export const requestToken = async (code: string): Promise<LoginUrl | null> => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code: code }),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.info(await response.json());
+      return null;
+    }
     const result = await response.json();
     return isLoginUrl(result) ? result : null;
   } catch {
