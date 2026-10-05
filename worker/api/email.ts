@@ -9,6 +9,7 @@ import sendEmail, {
 import { authError, driveError, unknownUser, wrongRecipient } from "./messages";
 import GoogleToken from "../google/token";
 import { getValidToken } from "./utils";
+import { htmlToMarkdown } from "../../shared/html-to-md";
 
 /** Google Drive rejects these in names; also cap the length. */
 function safeFileName(name: string): string {
@@ -61,7 +62,8 @@ export async function emailHandler(
     return;
   }
 
-  if (user.login !== email.to) {
+  const emailToLogin = email.to?.[0]?.address?.split("@")[0];
+  if (!emailToLogin || user.login !== emailToLogin) {
     await sendEmail(creds, {
       to: message.from,
       subject: wrongRecipient.subject,
@@ -98,7 +100,7 @@ export async function emailHandler(
     await drive.pushFile(
       rootFolder,
       filename,
-      email.html ?? email.text ?? "NONE",
+      email.html ? htmlToMarkdown(email.html) : (email.text ?? "NONE"),
     );
     await sendEmail(creds, {
       to: user.email,
