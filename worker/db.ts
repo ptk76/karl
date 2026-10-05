@@ -62,12 +62,12 @@ class UsersDB {
       )
       .bind(
         user.email,
-        user.login,
-        user.access_token,
-        user.access_expires,
-        user.refresh_token,
-        user.refresh_expires,
-        user.session_id,
+        user.login ?? null,
+        user.access_token ?? null,
+        user.access_expires ?? null,
+        user.refresh_token ?? null,
+        user.refresh_expires ?? null,
+        user.session_id ?? null,
       )
       .run();
   }
@@ -88,11 +88,11 @@ class UsersDB {
          WHERE email = ?`,
       )
       .bind(
-        user.access_token,
-        user.access_expires,
-        user.refresh_token,
-        user.refresh_expires,
-        user.session_id,
+        user.access_token ?? null,
+        user.access_expires ?? null,
+        user.refresh_token ?? null,
+        user.refresh_expires ?? null,
+        user.session_id ?? null,
         user.email,
       )
       .run();
