@@ -9,10 +9,13 @@ import {
   ActiveSession,
   LoginUrl,
   isLogoutRequest,
+  isTokensRequest,
+  isTokensRevokeRequest,
 } from "../../shared/api";
 import UsersDB, { UserTableRow } from "../db";
 import { getPayload, getSid, getValidToken } from "./utils";
 import ErrorResponse, { ApiErrors } from "./errors";
+import { tokenHandler } from "./tokens";
 
 type AccessData = {
   access_token: string;
@@ -34,8 +37,14 @@ export async function loginHandler(
   secret: string,
   db: Env["DB"],
 ) {
-  const payload: RequestPayload | null = await getPayload(request);
+  // Token routes must be handled before getPayload: reading the body here would
+  // consume it, and tokenHandler needs to parse the POST body itself.
   const url = new URL(request.url);
+  if (isTokensRequest(url) || isTokensRevokeRequest(url)) {
+    return tokenHandler(request, db);
+  }
+
+  const payload: RequestPayload | null = await getPayload(request);
 
   const client = new GoogleToken(secret);
   if (isLogoutRequest(url)) {

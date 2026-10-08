@@ -2,9 +2,11 @@ import loginHandler from "./api/login";
 import emailHandler from "./api/email";
 import ErrorResponse, { ApiErrors } from "./api/errors";
 import { readElasticCredentials, sendDiagnosticEmail } from "./send-email";
+import { MCP_PATH } from "../shared/api";
+import { mcpHandler } from "./mcp/handler";
 
 export default {
-  async fetch(request: Request, env: Env) {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const secret = env.GOOGLE_CLIENT_SECRET;
     if (!secret)
       return new Response(JSON.stringify({ error: "Missing secret" }), {
@@ -12,6 +14,9 @@ export default {
       });
 
     try {
+      if (new URL(request.url).pathname === MCP_PATH) {
+        return mcpHandler(request, env, ctx);
+      }
       return loginHandler(request, secret, env.DB);
     } catch (error) {
       console.error("login handler failed", error);
