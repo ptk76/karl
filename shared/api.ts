@@ -9,6 +9,22 @@ const api = (path: string) => `/api/${path}`;
 /** MCP (Model Context Protocol) endpoint, served from the worker itself. */
 export const MCP_PATH = "/mcp";
 
+/** OAuth 2.1 endpoints that let MCP clients connect without a hand-made token. */
+export const AUTHORIZE_PATH = "/authorize";
+export const OAUTH_TOKEN_PATH = "/oauth/token";
+export const OAUTH_REGISTER_PATH = "/oauth/register";
+
+/**
+ * Query parameter `/authorize` uses to send a signed-out user to the web app
+ * and get them back after the Google login.
+ */
+export const LOGIN_RETURN_PARAM = "next";
+
+/** Only an `/authorize` request on this origin may be a post-login target. */
+export function isLoginReturnPath(path: string | null): path is string {
+  return typeof path === "string" && path.startsWith(`${AUTHORIZE_PATH}?`);
+}
+
 export const ApiPaths = {
   login: api("login"),
   code: api("code"),

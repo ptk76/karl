@@ -66,10 +66,15 @@ export function ApiTokens(): React.JSX.Element {
     <section>
       <h2>MCP / API access</h2>
       <p>
-        Personal Access Tokens let AI tools (MCP clients such as Claude Code or
-        Claude Desktop) list and read the files in your{" "}
-        <code>dearkarl</code> Google Drive folder. Point them at{" "}
-        <code>https://karl.przemekkudla.pl/mcp</code> and send the token as{" "}
+        AI tools (MCP clients) can list and read the files in your{" "}
+        <code>dearkarl</code> Google Drive folder. In Claude Desktop or
+        claude.ai, add a custom connector with the URL{" "}
+        <code>https://karl.przemekkudla.pl/mcp</code> and sign in when asked —
+        no token needed.
+      </p>
+      <p>
+        For tools that only take a fixed header (scripts, Claude Code), create a
+        Personal Access Token below and send it as{" "}
         <code>Authorization: Bearer &lt;token&gt;</code>.
       </p>
 
