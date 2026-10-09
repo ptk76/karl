@@ -5,8 +5,10 @@ clients (Claude desktop, IDEs, scripts) read the files a user has saved to their
 **"dearkarl" Google Drive folder**. It is strictly **read-only**: two tools —
 `list_files` and `read_file` — and nothing writes to Drive.
 
-- Code: `worker/mcp/handler.ts` (entrypoint/auth), `worker/mcp/server.ts` (tools)
-- Wire contract: `shared/api.ts` (`MCP_PATH = "/mcp"`)
+- Code: `worker/mcp/handler.ts` (entrypoint), `worker/mcp/server.ts` (tools)
+- Auth: `worker/oauth/provider.ts` (OAuth provider + PAT check),
+  `worker/oauth/authorize.ts` (consent page)
+- Wire contract: `shared/api.ts` (`MCP_PATH = "/mcp"`, OAuth paths)
 - Token generation: `worker/mcp/pat.ts`, `worker/api/tokens.ts`, `worker/db.ts`
 
 ---
@@ -52,8 +54,52 @@ Key properties:
 
 ## Authentication
 
-Every `/mcp` request needs a **Personal Access Token (PAT)** in the `Authorization`
-header:
+Every `/mcp` request needs a bearer token, checked by
+[`@cloudflare/workers-oauth-provider`](https://github.com/cloudflare/workers-oauth-provider)
+before `mcpHandler` runs. Two kinds are accepted; either way the handler gets
+the owner in `ctx.props` (`{ email, patId? }`):
+
+1. **OAuth access token** — what Claude Desktop / claude.ai custom connectors
+   use. Nothing to copy by hand.
+2. **Personal Access Token (PAT)** — for clients that only take a fixed header.
+
+### OAuth (connectors)
+
+The worker is its own OAuth 2.1 authorization server. Endpoints:
+
+| Path | Owner | Purpose |
+|---|---|---|
+| `/.well-known/oauth-protected-resource/mcp` | provider | RFC 9728 resource metadata (linked from the `401` challenge) |
+| `/.well-known/oauth-authorization-server` | provider | RFC 8414 metadata |
+| `/oauth/register` | provider | Dynamic Client Registration (RFC 7591) |
+| `/authorize` | `worker/oauth/authorize.ts` | Sign-in + consent page |
+| `/oauth/token` | provider | Code / refresh-token exchange (PKCE S256 required) |
+
+Flow when a user adds `https://karl.przemekkudla.pl/mcp` as a connector:
+
+1. The client hits `/mcp`, gets `401` + `WWW-Authenticate: … resource_metadata=…`,
+   discovers the metadata above and registers itself.
+2. It opens `/authorize` in the browser. No `sid` session → redirect to
+   `/?next=/authorize?…`; the web app keeps `next` in `sessionStorage` across
+   the Google login and returns there afterwards.
+3. With a session, the user sees a consent page (client name, redirect host,
+   localhost warning; framing forbidden, form bound to the browser by cookie).
+   Allow → grant with `props = { email }`, `userId = email`.
+4. The client exchanges the code at `/oauth/token` and calls `/mcp` with the
+   access token.
+
+- Grants, tokens and registered clients live in the **`OAUTH_KV`** KV
+  namespace (hashed tokens, encrypted props). Provisioned automatically on
+  `wrangler deploy`, like D1.
+- Single scope: `files:read`.
+- Issuer and resource are derived from the request origin, so production,
+  workers.dev and `localhost` each work as their own issuer.
+- The Drive access itself still comes from the user's Google tokens in D1; if
+  they log out of the web app, MCP calls return the re-authorization message.
+
+### Personal Access Tokens
+
+PATs go in the `Authorization` header:
 
 ```
 Authorization: Bearer karl_<64 hex chars>
@@ -64,8 +110,10 @@ Authorization: Bearer karl_<64 hex chars>
   expose usable tokens.
 - A token is valid while it is not revoked and not expired
   (`api_tokens.revoked_at IS NULL` and `expires_at IS NULL OR expires_at > now`).
-- **Unknown, revoked, and expired tokens all return the same `401 Unauthorized`**
+- **Unknown, revoked, and expired tokens all return the same `401 invalid_token`**
   — deliberately no hint about which case failed.
+- The provider tries a token as an OAuth token first; anything it did not issue
+  goes to `resolvePat()`, which only looks up `karl_`-prefixed tokens.
 - Each successful request best-effort updates `last_used_at` (via
   `ctx.waitUntil`, never blocks the response).
 
@@ -213,4 +261,4 @@ tokens get a bare `401 Unauthorized` on the first message.
 | Code | Meaning |
 |---|---|
 | `200` | JSON-RPC result (initialize, tools/list, tools/call) |
-| `401` | Missing, unknown, revoked, or expired bearer token |
+| `401` | Missing, unknown, revoked, or expired bearer token (with a `WWW-Authenticate` challenge for OAuth discovery) |

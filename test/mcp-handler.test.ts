@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mcpHandler } from "../worker/mcp/handler";
 
-// The handler news up ApiTokensDB, GoogleToken and GoogleDrive internally, so
-// we replace those modules. UsersDB (default export of ../db) is only used by
-// getValidToken, which needs isTokenValid to answer.
+// The handler news up UsersDB, ApiTokensDB, GoogleToken and GoogleDrive
+// internally, so we replace those modules. Authentication itself happens in the
+// OAuth provider (test/oauth-provider.test.ts); here the handler is called as
+// the provider calls it, with the owner already in ctx.props.
 const mocks = vi.hoisted(() => ({
-  findUserByTokenHash: vi.fn(),
+  getUser: vi.fn(),
   touchToken: vi.fn(),
   isTokenValid: vi.fn(),
   refreshAccessToken: vi.fn(),
@@ -18,10 +19,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../worker/db", () => ({
   ApiTokensDB: class {
-    findUserByTokenHash = mocks.findUserByTokenHash;
     touchToken = mocks.touchToken;
   },
-  default: class {},
+  default: class {
+    getUser = mocks.getUser;
+  },
 }));
 
 vi.mock("../worker/google/token", () => ({
@@ -47,7 +49,6 @@ vi.mock("../worker/google/drive", () => ({
   },
 }));
 
-const BEARER = "karl_validtoken";
 const MOCK_USER = {
   email: "user@example.com",
   login: "karl-login",
@@ -57,13 +58,15 @@ const MOCK_USER = {
 };
 
 const noDb = {} as never;
-const noCtx = { waitUntil: () => {} } as unknown as ExecutionContext;
+const patCtx = {
+  waitUntil: () => {},
+  props: { email: MOCK_USER.email, patId: 1 },
+} as unknown as ExecutionContext;
 
-function mcpCall(body: unknown, auth = `Bearer ${BEARER}`) {
+function mcpCall(body: unknown) {
   return new Request("https://example.com/mcp", {
     method: "POST",
     headers: {
-      Authorization: auth,
       "Content-Type": "application/json",
       // Streamable HTTP requires the client to accept both formats.
       Accept: "application/json, text/event-stream",
@@ -82,7 +85,7 @@ function toolCall(name: string, args: Record<string, unknown> = {}) {
 }
 
 async function callTool(name: string, args?: Record<string, unknown>) {
-  const res = await mcpHandler(mcpCall(toolCall(name, args)), { DB: noDb, GOOGLE_CLIENT_SECRET: "{}" } as never, noCtx);
+  const res = await mcpHandler(mcpCall(toolCall(name, args)), { DB: noDb, GOOGLE_CLIENT_SECRET: "{}" } as never, patCtx);
   expect(res.status).toBe(200);
   const body = await res.json();
   if (body.error) throw new Error(`JSON-RPC error: ${JSON.stringify(body.error)}`);
@@ -91,54 +94,44 @@ async function callTool(name: string, args?: Record<string, unknown>) {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mocks.findUserByTokenHash.mockResolvedValue({
-    user: MOCK_USER,
-    tokenId: 1,
-  });
+  mocks.getUser.mockResolvedValue(MOCK_USER);
   mocks.isTokenValid.mockReturnValue(true);
   mocks.getRootFolderId.mockResolvedValue("folder-1");
   mocks.touchToken.mockResolvedValue();
 });
 
 describe("authentication", () => {
-  it("rejects a request without an Authorization header", async () => {
-    const res = await mcpHandler(
-      new Request("https://example.com/mcp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }),
-      }),
-      { DB: noDb, GOOGLE_CLIENT_SECRET: "{}" } as never,
-      noCtx,
-    );
+  const env = { DB: noDb, GOOGLE_CLIENT_SECRET: "{}" } as never;
+  const ping = () => mcpCall({ jsonrpc: "2.0", id: 1, method: "ping" });
+
+  it("rejects a request without props", async () => {
+    const res = await mcpHandler(ping(), env, { waitUntil: () => {} } as never);
     expect(res.status).toBe(401);
-    expect(mocks.findUserByTokenHash).not.toHaveBeenCalled();
+    expect(mocks.getUser).not.toHaveBeenCalled();
   });
 
-  it("rejects a malformed Authorization header", async () => {
-    const res = await mcpHandler(
-      mcpCall({ jsonrpc: "2.0", id: 1, method: "ping" }, "Basic abc="),
-      { DB: noDb, GOOGLE_CLIENT_SECRET: "{}" } as never,
-      noCtx,
-    );
+  it("rejects props whose user no longer exists", async () => {
+    mocks.getUser.mockResolvedValue(null);
+    const res = await mcpHandler(ping(), env, patCtx);
     expect(res.status).toBe(401);
   });
 
-  it("rejects an unknown token hash", async () => {
-    mocks.findUserByTokenHash.mockResolvedValue(null);
-    const res = await mcpHandler(
-      mcpCall({ jsonrpc: "2.0", id: 1, method: "ping" }),
-      { DB: noDb, GOOGLE_CLIENT_SECRET: "{}" } as never,
-      noCtx,
-    );
-    expect(res.status).toBe(401);
-  });
-
-  it("touches last_used_at for a valid token", async () => {
+  it("touches last_used_at for a Personal Access Token", async () => {
     mocks.getRootFolderId.mockResolvedValue("folder-1");
     mocks.listFiles.mockResolvedValue([]);
     await callTool("list_files");
+    expect(mocks.getUser).toHaveBeenCalledWith(MOCK_USER.email);
     expect(mocks.touchToken).toHaveBeenCalledWith(1, expect.any(Number));
+  });
+
+  it("does not touch any token for an OAuth access token", async () => {
+    const oauthCtx = {
+      waitUntil: () => {},
+      props: { email: MOCK_USER.email },
+    } as unknown as ExecutionContext;
+    const res = await mcpHandler(ping(), env, oauthCtx);
+    expect(res.status).toBe(200);
+    expect(mocks.touchToken).not.toHaveBeenCalled();
   });
 });
 
@@ -152,7 +145,7 @@ describe("initialize", () => {
         params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "1" } },
       }),
       { DB: noDb, GOOGLE_CLIENT_SECRET: "{}" } as never,
-      noCtx,
+      patCtx,
     );
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -240,7 +233,7 @@ describe("read_file", () => {
     const res = await mcpHandler(
       mcpCall(toolCall("read_file", { fileId: "f1", name: "x.txt" })),
       { DB: noDb, GOOGLE_CLIENT_SECRET: "{}" } as never,
-      noCtx,
+      patCtx,
     );
     const body = await res.json();
     expect(body.result).toBeDefined();

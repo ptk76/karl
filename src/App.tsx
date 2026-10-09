@@ -2,17 +2,44 @@ import React, { useEffect, useState } from "react";
 import style from "./App.module.css";
 import { getActiveSession, getLoginUrl, logout, requestToken } from "./server";
 import { ApiTokens } from "./ApiTokens";
+import { isLoginReturnPath } from "../shared/api";
 
 function navigateTo(url: string) {
   window.location.href = url;
 }
 
-function App(props: { code: string | null }): React.JSX.Element {
+// An MCP client's /authorize page sends signed-out users here with
+// `?next=/authorize?…`. The path is kept across the Google round trip, which
+// lands back on "/" with only `?code=`, then followed once after login.
+// Storage can be unavailable (private mode); then the user just stays here.
+const LOGIN_RETURN_KEY = "karl.loginReturn";
+
+function rememberLoginReturn(path: string) {
+  try {
+    sessionStorage.setItem(LOGIN_RETURN_KEY, path);
+  } catch {}
+}
+
+function takeLoginReturn(): string | null {
+  try {
+    const path = sessionStorage.getItem(LOGIN_RETURN_KEY);
+    sessionStorage.removeItem(LOGIN_RETURN_KEY);
+    return isLoginReturnPath(path) ? path : null;
+  } catch {
+    return null;
+  }
+}
+
+function App(props: {
+  code: string | null;
+  loginReturn?: string | null;
+}): React.JSX.Element {
   const [activeSession, setActiveSession] = useState(false);
   const [busy, setBusy] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [karlEmail, setKarlEmail] = useState("");
   const [error, setError] = useState("");
+  const [connecting, setConnecting] = useState(false);
 
   const loginGoogle = async () => {
     setError("");
@@ -42,7 +69,7 @@ function App(props: { code: string | null }): React.JSX.Element {
     window.history.replaceState({}, "", "/");
     await requestToken(code);
     setBusy(false);
-    navigateTo("/");
+    navigateTo(takeLoginReturn() ?? "/");
   };
 
   const init = async () => {
@@ -62,6 +89,12 @@ function App(props: { code: string | null }): React.JSX.Element {
 
   useEffect(() => {
     setError("");
+
+    if (isLoginReturnPath(props.loginReturn ?? null)) {
+      rememberLoginReturn(props.loginReturn!);
+      setConnecting(true);
+      window.history.replaceState({}, "", "/");
+    }
 
     if (props.code) {
       initToken(props.code);
@@ -94,6 +127,9 @@ function App(props: { code: string | null }): React.JSX.Element {
           <button onClick={logoutGoogle}>Log out</button>
           <ApiTokens />
         </>
+      )}
+      {!activeSession && connecting && (
+        <p>Log in to finish connecting your AI app to Dear Karl.</p>
       )}
       {!activeSession && (
         <button onClick={loginGoogle}>Log in with Google</button>
