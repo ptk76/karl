@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { AppProvider } from "./context/AppContext.tsx";
+import { LOGIN_RETURN_PARAM } from "../shared/api";
 
 document.body.style.margin = "0px";
 document.body.style.fontFamily =
@@ -12,7 +13,10 @@ const url = new URL(location.href);
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AppProvider>
-      <App code={url.searchParams.get("code")} />
+      <App
+        code={url.searchParams.get("code")}
+        loginReturn={url.searchParams.get(LOGIN_RETURN_PARAM)}
+      />
     </AppProvider>
   </StrictMode>,
 );

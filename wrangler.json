@@ -10,6 +10,11 @@
       "database_name": "karl"
     }
   ],
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV"
+    }
+  ],
   "observability": {
     "enabled": true
   },

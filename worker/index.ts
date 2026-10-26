@@ -1,9 +1,7 @@
-import loginHandler from "./api/login";
 import emailHandler from "./api/email";
 import ErrorResponse, { ApiErrors } from "./api/errors";
 import { readElasticCredentials, sendDiagnosticEmail } from "./send-email";
-import { MCP_PATH } from "../shared/api";
-import { mcpHandler } from "./mcp/handler";
+import { providerFor } from "./oauth/provider";
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
@@ -14,10 +12,14 @@ export default {
       });
 
     try {
-      if (new URL(request.url).pathname === MCP_PATH) {
-        return mcpHandler(request, env, ctx);
-      }
-      return loginHandler(request, secret, env.DB);
+      // The OAuth provider owns /mcp (bearer check), its own endpoints
+      // (/.well-known/*, /oauth/token, /oauth/register) and hands everything
+      // else to /authorize or the login API.
+      return await providerFor(new URL(request.url).origin).fetch(
+        request,
+        env,
+        ctx,
+      );
     } catch (error) {
       console.error("login handler failed", error);
       return new ErrorResponse(ApiErrors.InternalError);
