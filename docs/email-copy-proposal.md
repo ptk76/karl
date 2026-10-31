@@ -122,7 +122,8 @@ Karl
 
 ### 2. Sender not recognised
 **Trigger:** there is no account for `message.from`. **To:** the sender.
-Sent in both languages, Polish first.
+Sent in both languages, Polish first. At most once per sender address per day
+(see Q2).
 
 **Subject:** `Nie znam jeszcze tego adresu / I don't know this address yet`
 
@@ -279,17 +280,7 @@ or the links in the mails lead nowhere:
 - **Q4. Language:** English and Polish.
 - **Q5. Footer:** Technologie 21 Aleksander Jaworski, Pionerska 7/2,
   53-213 Wrocław, NIP 6912215667, contact `hi@dearkarl.com`.
-
-## Open questions
-
-**Q2. Should mail 2 ("Sender not recognised") be sent at all?** It goes to
-anyone who writes to a DearKarl address from an address without an account,
-as long as SPF/DMARC doesn't fail. So every stranger's or spammer's mail costs
-an Elastic Email send, and replying to unknown addresses can hurt the
-sender's reputation. Options: (a) send it every time, as today; (b) at most
-once per address per day; (c) never. Proposal: (b).
-
-(Mail 3 doesn't have this problem: it only goes to people who have an
-account.)
-
-> Olek:
+- **Q2. Mail 2 to unknown senders:** keep it, but at most once per sender
+  address per day. Every stranger's or spammer's mail would otherwise cost an
+  Elastic Email send and hurt the sender reputation. Needs a small table
+  (address, last sent) in D1, checked before sending.
