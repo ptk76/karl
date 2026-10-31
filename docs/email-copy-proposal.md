@@ -10,70 +10,171 @@ The current mails were written one at a time, and it shows:
 
 | Problem now | Proposal |
 |---|---|
-| Greetings and sign-offs vary ("Hello!", "Regards, Karl") and the bodies are raw HTML with `<br>` | One template for all mails: `Hi,` → what happened → what to do → `— Karl`. Plain short paragraphs. |
-| A link's text says `dearkarl.com` but the link goes to `karl.przemekkudla.pl`; the same for `support@dearkarl.com` → `support@przemekkudla.pl` | The text and the link always show the same address. Which domain to use → **Q1**. |
+| Greetings and sign-offs vary ("Hello!", "Regards, Karl") and the bodies are raw HTML with `<br>` | One template for all mails: greeting → what happened → what to do → `Karl` → footer. Plain short paragraphs. |
+| The brand is written "Dear Karl" | Always **DearKarl**. |
+| A link's text says `dearkarl.com` but the link goes to `karl.przemekkudla.pl`; the same for `support@dearkarl.com` → `support@przemekkudla.pl` | Everything uses `dearkarl.com`, and the link text always matches the link (see "Before this ships"). |
+| No footer: no contact address, no sender details | One footer on every mail: link to dearkarl.com, contact address, the details EU law requires (see "Footer"). |
 | Subjects use three different styles ("Unknown User", "Access Denied", "Saved to Drive: …") | Every subject is a short plain sentence saying what happened. |
-| A failure mail never says whether anything was saved or whether to send again | Every failure mail says "nothing was saved" and what to do next. |
+| A failure mail never says whether anything was saved or whether to send again | Every failure mail says nothing was saved and what to do next. |
 | The mails do not say which message they are about | The subject of the original email is quoted (`{subject}`), so the user knows which one failed. |
-| "Access Denied" covers two different situations (token refresh failed / Drive rejected the token) | One mail for both — to the user it is the same thing: "sign in again". |
+| "Access Denied" covers two different situations (token refresh failed / Drive rejected the token) | One mail for both. To the user it is the same thing: "sign in again". |
+| English only | English and Polish (see "Language"). |
 
 Placeholders: `{subject}` = subject of the incoming email, `{filename}` = name
-of the file on Drive, `{from}` = sender address, `{to}` = the Karl address it
-was sent to, `{karl_address}` = the user's own Karl address. Every placeholder
-is HTML-escaped, because all of them come from mail anyone can send.
+of the file on Drive, `{from}` = sender address, `{to}` = the DearKarl address
+it was sent to, `{karl_address}` = the user's own DearKarl address. Every
+placeholder is HTML-escaped, because all of them come from mail anyone can
+send.
 
-Constants used below: `{app_url}` and `{support}` — see **Q1**.
+## Language
+
+- **Known users** (mails 1, 3, 4, 5) get the mail in their account language.
+  New setting, values `en` / `pl`. Default at sign-up: `pl` if the Google
+  profile locale starts with `pl`, otherwise `en`.
+- **Unknown senders** (mail 2) have no account, so we don't know their
+  language. Proposal: one mail with both versions, Polish first, then English.
+- Diagnostics (operator mails) stay in English.
+
+> Olek:
+
+## Footer
+
+The same footer goes under every user mail. It covers what Polish/EU law
+requires from a business sending mail as part of an online service (the
+"ustawa o świadczeniu usług drogą elektroniczną", art. 5, and GDPR art. 13):
+who is sending, how to contact them, the company's registration data, and
+where the privacy policy is. These are service mails, not marketing, so no
+unsubscribe link is required, but mail 1 links to the setting that turns it
+off.
+
+`{legal_name}`, `{address}`, `{nip}`, `{register}` must come from whoever
+legally runs DearKarl (see Q5). For a sole trader `{register}` is the CEIDG
+entry; for a company it is "KRS {number}", and a sp. z o.o. also has to show
+its share capital.
+
+EN:
+
+```text
+--
+DearKarl · https://dearkarl.com
+Contact: support@dearkarl.com
+{legal_name}, {address}
+VAT ID (NIP): {nip} · {register}
+Privacy policy: https://dearkarl.com/privacy
+{why_line}
+```
+
+PL:
+
+```text
+--
+DearKarl · https://dearkarl.com
+Kontakt: support@dearkarl.com
+{legal_name}, {address}
+NIP: {nip} · {register}
+Polityka prywatności: https://dearkarl.com/privacy
+{why_line}
+```
+
+`{why_line}` explains why the person got the mail:
+
+| Mail | EN | PL |
+|---|---|---|
+| 1 | `You get this after every saved email. Turn it off in your settings: https://dearkarl.com/settings` | `Dostajesz to po każdym zapisanym mailu. Możesz to wyłączyć w ustawieniach: https://dearkarl.com/settings` |
+| 2 | `You got this because an email from {from} was sent to a DearKarl address.` | `Dostajesz to, bo z adresu {from} przyszedł mail na adres DearKarl.` |
+| 3, 4, 5 | `You got this because you have a DearKarl account.` | `Dostajesz to, bo masz konto w DearKarl.` |
 
 ---
 
 ## User mails
 
-### 1. Saved — the happy path
-**Trigger:** the file was saved to Drive. **To:** `user.email`.
+### 1. Saved (the happy path)
+**Trigger:** the file was saved to Drive, and the user has the setting
+"Confirm every saved email" turned on (default: on). **To:** `user.email`.
 
-**Subject:** `Saved: {filename}`
+**EN subject:** `Saved: {filename}`
 
-```
+```text
 Hi,
 
 I saved your email "{subject}" to the dearkarl folder on your Google Drive
 as "{filename}".
 
-— Karl
+Karl
 ```
+
+**PL temat:** `Zapisane: {filename}`
+
+```text
+Cześć,
+
+zapisałem Twojego maila „{subject}” na Twoim Dysku Google, w folderze
+dearkarl, jako „{filename}”.
+
+Karl
+```
+
+> New setting: one column in `users` + a switch on the settings page + one
+> `if` in the handler before this mail is sent.
 
 ### 2. Sender not recognised
 **Trigger:** there is no account for `message.from`. **To:** the sender.
+Sent in both languages, Polish first.
 
-**Subject:** `I don't know this address yet`
+**Subject:** `Nie znam jeszcze tego adresu / I don't know this address yet`
 
-```
+```text
+Cześć,
+
+dostałem Twojego maila „{subject}”, ale adres {from} nie jest połączony
+z żadnym kontem DearKarl. Nic nie zapisałem.
+
+Jeśli masz już konto, wyślij maila z adresu Google przypisanego do konta.
+Jeśli nie, załóż je na https://dearkarl.com.
+
+Karl
+
+---
+
 Hi,
 
-I got your email "{subject}", but {from} isn't linked to a Dear Karl account,
+I got your email "{subject}", but {from} isn't linked to a DearKarl account,
 so I didn't save anything.
 
 If you already have an account, send from the Google address you signed up
-with. If not, you can create one at {app_url}.
+with. If not, you can create one at https://dearkarl.com.
 
-— Karl
+Karl
 ```
 
-### 3. Wrong Karl address
-**Trigger:** the sender is known, but they wrote to someone else's Karl
+### 3. Wrong DearKarl address
+**Trigger:** the sender is known, but they wrote to someone else's DearKarl
 address. **To:** the sender.
 
-**Subject:** `That Karl address isn't yours`
+**EN subject:** `That isn't your DearKarl address`
 
-```
+```text
 Hi,
 
-You sent "{subject}" to {to}, which isn't your Karl address, so I didn't save
-anything.
+You sent "{subject}" to {to}, which isn't your DearKarl address, so I didn't
+save anything.
 
 Your address is {karl_address}. Send the email there and I'll save it.
 
-— Karl
+Karl
+```
+
+**PL temat:** `To nie jest Twój adres DearKarl`
+
+```text
+Cześć,
+
+mail „{subject}” poszedł na {to}, a to nie jest Twój adres DearKarl.
+Nic nie zapisałem.
+
+Twój adres to {karl_address}. Wyślij maila tam, a go zapiszę.
+
+Karl
 ```
 
 > Code change: today the mail does not say what the right address is. The
@@ -83,75 +184,112 @@ Your address is {karl_address}. Send the email there and I'll save it.
 **Trigger:** the Google token could not be refreshed, **or** Drive rejected it
 (`DriveAuthError`). **To:** `user.email`.
 
-**Subject:** `Please sign in to Dear Karl again`
+**EN subject:** `Please sign in to DearKarl again`
 
-```
+```text
 Hi,
 
 I couldn't save "{subject}" because my access to your Google Drive has
 expired. Nothing was saved.
 
-Sign in again at {app_url}, then send the email once more.
+Sign in again at https://dearkarl.com, then send the email once more.
 
-— Karl
+Karl
+```
+
+**PL temat:** `Zaloguj się ponownie do DearKarl`
+
+```text
+Cześć,
+
+nie zapisałem „{subject}”, bo wygasł mój dostęp do Twojego Dysku Google.
+
+Zaloguj się ponownie na https://dearkarl.com i wyślij maila jeszcze raz.
+
+Karl
 ```
 
 ### 5. Could not save
 **Trigger:** saving to Drive failed for any other reason. **To:** `user.email`.
 
-**Subject:** `I couldn't save your email`
+**EN subject:** `I couldn't save your email`
 
-```
+```text
 Hi,
 
 I couldn't save "{subject}" to your Google Drive. Nothing was saved.
 
 This usually means the drive is full. Free up some space and send the email
-again. If it keeps happening, write to {support}.
+again. If it keeps happening, write to support@dearkarl.com.
 
-— Karl
+Karl
+```
+
+**PL temat:** `Nie udało mi się zapisać Twojego maila`
+
+```text
+Cześć,
+
+nie mogłem zapisać „{subject}” na Twoim Dysku Google.
+
+Najczęściej to znaczy, że dysk jest pełny. Zwolnij trochę miejsca i wyślij
+maila jeszcze raz. Jeśli to się powtarza, napisz do nas:
+support@dearkarl.com.
+
+Karl
 ```
 
 ---
 
 ## Operator mails (diagnostics)
 
-They go to `DIAGNOSTIC_EMAIL` (fallback: `przemekkudla@hotmail.com`). Only
-the subjects change, so they are easier to filter:
+They go to `DIAGNOSTIC_EMAIL` (fallback: `przemekkudla@hotmail.com`). English
+only, no footer. Only the subjects change, so they are easier to filter:
 
 | Trigger | Now | Proposal |
 |---|---|---|
-| SPF/DMARC failed, mail dropped | `Rejected: sender authentication failed` | `[Karl] Rejected: sender authentication failed` |
-| Unhandled exception in `emailHandler` | `ERROR` | `[Karl] Error: {first line of the message}` |
+| SPF/DMARC failed, mail dropped | `Rejected: sender authentication failed` | `[DearKarl] Rejected: sender authentication failed` |
+| Unhandled exception in `emailHandler` | `ERROR` | `[DearKarl] Error: {first line of the message}` |
 
 The body stays as it is (technical details, escaped).
 
 ---
 
+## Before this ships
+
+The mails point at `dearkarl.com` (decided), so these have to exist first,
+or the links in the mails lead nowhere:
+
+1. `https://dearkarl.com` serves the app (today it is `karl.przemekkudla.pl`).
+2. `support@dearkarl.com` is a working mailbox.
+3. `https://dearkarl.com/privacy` and `https://dearkarl.com/settings` exist.
+4. Elastic Email sends from a `@dearkarl.com` address, with SPF and DKIM set
+   up for that domain. Otherwise "DearKarl" mail arrives from
+   `przemekkudla.pl` and is more likely to land in spam.
+
+## Decided
+
+- **Q1. Domain:** `dearkarl.com` everywhere.
+- **Q3. Confirmation after every save:** keep it, and make it an account
+  setting (default: on).
+- **Q4. Language:** English and Polish.
+
 ## Open questions
 
-**Q1. Which domain goes in the mails?** Either the address that works today
-(`karl.przemekkudla.pl`, `support@przemekkudla.pl`), or `dearkarl.com` — but
-only once that domain points at the app and the support mailbox exists.
-Proposal: the working address now, as constants in `messages.ts`, so the
-switch is one line.
+**Q2. Should mail 2 ("Sender not recognised") be sent at all?** It goes to
+anyone who writes to a DearKarl address from an address without an account,
+as long as SPF/DMARC doesn't fail. So every stranger's or spammer's mail costs
+an Elastic Email send, and replying to unknown addresses can hurt the
+sender's reputation. Options: (a) send it every time, as today; (b) at most
+once per address per day; (c) never. Proposal: (b).
+
+(Mail 3 doesn't have this problem: it only goes to people who have an
+account.)
 
 > Olek:
 
-**Q2. Should mails 2 and 3 be sent at all?** They go to anyone who passes
-SPF/DMARC, so every stranger's mail costs an Elastic Email send, and replying
-to unknown addresses can hurt the sender reputation. Option: send mail 2 at
-most once per address per day, or not at all.
-
-> Olek:
-
-**Q3. Mail 1 on every save — needed?** If someone saves 20 emails a day, they
-get 20 confirmations. Option: keep it (it confirms that it works) or make it
-an account setting later.
-
-> Olek:
-
-**Q4. Language.** Everything stays in English, the same as the app. Polish
-versions only if the app gets them too.
+**Q5. Who goes in the footer?** It has to be whoever legally runs DearKarl:
+name, address, NIP, and the CEIDG or KRS entry. Przemek's business, yours, or
+a shared company?
 
 > Olek:
