@@ -43,7 +43,7 @@ The same footer goes under every user mail. It covers what Polish/EU law
 requires from a business sending mail as part of an online service (the
 "ustawa o świadczeniu usług drogą elektroniczną", art. 5, and GDPR art. 13):
 who is sending, how to contact them, the company's registration data, and
-where the privacy policy is. These are service mails, not marketing, so no
+where the privacy policy and the terms are. These are service mails, not marketing, so no
 unsubscribe link is required, but mail 1 links to the setting that turns it
 off.
 
@@ -61,6 +61,7 @@ Technologie 21 Aleksander Jaworski
 Pionerska 7/2, 53-213 Wrocław, Poland
 VAT ID (NIP): 6912215667 · registered in CEIDG
 Privacy policy: https://dearkarl.com/privacy
+Terms: https://dearkarl.com/terms
 {why_line}
 ```
 
@@ -74,6 +75,7 @@ Technologie 21 Aleksander Jaworski
 ul. Pionerska 7/2, 53-213 Wrocław
 NIP: 6912215667 · wpis do CEIDG
 Polityka prywatności: https://dearkarl.com/privacy
+Regulamin: https://dearkarl.com/terms
 {why_line}
 ```
 
@@ -263,7 +265,8 @@ or the links in the mails lead nowhere:
 
 1. `https://dearkarl.com` serves the app (today it is `karl.przemekkudla.pl`).
 2. `hi@dearkarl.com` is a working mailbox.
-3. `https://dearkarl.com/privacy` and `https://dearkarl.com/settings` exist.
+3. `https://dearkarl.com/privacy`, `https://dearkarl.com/terms` and
+   `https://dearkarl.com/settings` exist.
 4. Elastic Email sends from a `@dearkarl.com` address, with SPF and DKIM set
    up for that domain. Otherwise "DearKarl" mail arrives from
    `przemekkudla.pl` and is more likely to land in spam.
