@@ -12,7 +12,7 @@ The current mails were written one at a time, and it shows:
 |---|---|
 | Greetings and sign-offs vary ("Hello!", "Regards, Karl") and the bodies are raw HTML with `<br>` | One template for all mails: greeting → what happened → what to do → `Karl` → footer. Plain short paragraphs. |
 | The brand is written "Dear Karl" | Always **DearKarl**. |
-| A link's text says `dearkarl.com` but the link goes to `karl.przemekkudla.pl`; the same for `support@dearkarl.com` → `support@przemekkudla.pl` | Everything uses `dearkarl.com`, and the link text always matches the link (see "Before this ships"). |
+| A link's text says `dearkarl.com` but the link goes to `karl.przemekkudla.pl`; the same for `support@dearkarl.com` → `support@przemekkudla.pl` | Everything uses `dearkarl.com`, contact goes to `hi@dearkarl.com`, and the link text always matches the link (see "Before this ships"). |
 | No footer: no contact address, no sender details | One footer on every mail: link to dearkarl.com, contact address, the details EU law requires (see "Footer"). |
 | Subjects use three different styles ("Unknown User", "Access Denied", "Saved to Drive: …") | Every subject is a short plain sentence saying what happened. |
 | A failure mail never says whether anything was saved or whether to send again | Every failure mail says nothing was saved and what to do next. |
@@ -47,19 +47,19 @@ where the privacy policy is. These are service mails, not marketing, so no
 unsubscribe link is required, but mail 1 links to the setting that turns it
 off.
 
-`{legal_name}`, `{address}`, `{nip}`, `{register}` must come from whoever
-legally runs DearKarl (see Q5). For a sole trader `{register}` is the CEIDG
-entry; for a company it is "KRS {number}", and a sp. z o.o. also has to show
-its share capital.
+DearKarl is run by Technologie 21 Aleksander Jaworski, a sole trader, so the
+register is CEIDG (no separate number is needed, the NIP identifies the
+entry).
 
 EN:
 
 ```text
 --
 DearKarl · https://dearkarl.com
-Contact: support@dearkarl.com
-{legal_name}, {address}
-VAT ID (NIP): {nip} · {register}
+Contact: hi@dearkarl.com
+Technologie 21 Aleksander Jaworski
+Pionerska 7/2, 53-213 Wrocław, Poland
+VAT ID (NIP): 6912215667 · registered in CEIDG
 Privacy policy: https://dearkarl.com/privacy
 {why_line}
 ```
@@ -69,9 +69,10 @@ PL:
 ```text
 --
 DearKarl · https://dearkarl.com
-Kontakt: support@dearkarl.com
-{legal_name}, {address}
-NIP: {nip} · {register}
+Kontakt: hi@dearkarl.com
+Technologie 21 Aleksander Jaworski
+ul. Pionerska 7/2, 53-213 Wrocław
+NIP: 6912215667 · wpis do CEIDG
 Polityka prywatności: https://dearkarl.com/privacy
 {why_line}
 ```
@@ -220,7 +221,7 @@ Hi,
 I couldn't save "{subject}" to your Google Drive. Nothing was saved.
 
 This usually means the drive is full. Free up some space and send the email
-again. If it keeps happening, write to support@dearkarl.com.
+again. If it keeps happening, write to hi@dearkarl.com.
 
 Karl
 ```
@@ -234,7 +235,7 @@ nie mogłem zapisać „{subject}” na Twoim Dysku Google.
 
 Najczęściej to znaczy, że dysk jest pełny. Zwolnij trochę miejsca i wyślij
 maila jeszcze raz. Jeśli to się powtarza, napisz do nas:
-support@dearkarl.com.
+hi@dearkarl.com.
 
 Karl
 ```
@@ -261,7 +262,7 @@ The mails point at `dearkarl.com` (decided), so these have to exist first,
 or the links in the mails lead nowhere:
 
 1. `https://dearkarl.com` serves the app (today it is `karl.przemekkudla.pl`).
-2. `support@dearkarl.com` is a working mailbox.
+2. `hi@dearkarl.com` is a working mailbox.
 3. `https://dearkarl.com/privacy` and `https://dearkarl.com/settings` exist.
 4. Elastic Email sends from a `@dearkarl.com` address, with SPF and DKIM set
    up for that domain. Otherwise "DearKarl" mail arrives from
@@ -273,6 +274,8 @@ or the links in the mails lead nowhere:
 - **Q3. Confirmation after every save:** keep it, and make it an account
   setting (default: on).
 - **Q4. Language:** English and Polish.
+- **Q5. Footer:** Technologie 21 Aleksander Jaworski, Pionerska 7/2,
+  53-213 Wrocław, NIP 6912215667, contact `hi@dearkarl.com`.
 
 ## Open questions
 
@@ -285,11 +288,5 @@ once per address per day; (c) never. Proposal: (b).
 
 (Mail 3 doesn't have this problem: it only goes to people who have an
 account.)
-
-> Olek:
-
-**Q5. Who goes in the footer?** It has to be whoever legally runs DearKarl:
-name, address, NIP, and the CEIDG or KRS entry. Przemek's business, yours, or
-a shared company?
 
 > Olek:
