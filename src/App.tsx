@@ -3,6 +3,7 @@ import style from "./App.module.css";
 import { getActiveSession, getLoginUrl, logout, requestToken } from "./server";
 import { ApiTokens } from "./ApiTokens";
 import Connect from "./Connect";
+import Destination from "./Destination";
 import { formatKarlAddress } from "./address";
 
 function navigateTo(url: string) {
@@ -10,17 +11,17 @@ function navigateTo(url: string) {
 }
 
 // Remembers, for this browser session, whether the user has already been
-// through the connect step. A fresh sign-in shows it; a returning reload skips
-// straight to the account page.
+// through the onboarding steps. A fresh sign-in starts at the destination
+// choice; a returning reload skips straight to the account page.
 const STAGE_KEY = "dk_flow_stage";
 
-function readStage(): "connect" | "account" {
+type Stage = "destination" | "connect" | "account";
+
+function readStage(): Stage {
   try {
-    return sessionStorage.getItem(STAGE_KEY) === "account"
-      ? "account"
-      : "connect";
+    return sessionStorage.getItem(STAGE_KEY) === "account" ? "account" : "destination";
   } catch {
-    return "connect";
+    return "destination";
   }
 }
 
@@ -97,7 +98,7 @@ function App(props: { code: string | null }): React.JSX.Element {
   const [karlEmail, setKarlEmail] = useState("");
   const [error, setError] = useState("");
   const [newsletter, setNewsletter] = useState(false);
-  const [stage, setStage] = useState<"connect" | "account">(readStage);
+  const [stage, setStage] = useState<Stage>(readStage);
 
   const goToAccount = () => {
     setStage("account");
@@ -285,6 +286,8 @@ function App(props: { code: string | null }): React.JSX.Element {
               </div>
             </div>
           </>
+        ) : stage === "destination" ? (
+          <Destination onNext={() => setStage("connect")} />
         ) : stage === "connect" ? (
           <Connect
             karlEmail={karlEmail}
