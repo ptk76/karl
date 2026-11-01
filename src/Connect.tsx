@@ -1,10 +1,24 @@
 import React, { useState } from "react";
+import style from "./App.module.css";
 import { formatKarlAddress } from "./karlAddress";
+import { createApiToken } from "./server";
 
-/** The command that wires Claude Code to Karl's MCP endpoint. The mock shows a
-    placeholder because the connector that emits a real, working line is not
-    built yet — see the later-note below, and docs/mcp in the repo. */
-const CONNECT_COMMAND = "[ placeholder — the connector is not built yet ]";
+/** Karl's MCP endpoint. A client connects to it with a Personal Access Token in
+    the Authorization header — see worker/mcp/README.md and .claude/skills/
+    dearkarl-mcp. */
+const MCP_URL = "https://karl.przemekkudla.pl/mcp";
+const MCP_SERVER_NAME = "dearkarl";
+
+/** Session key for the token the user generates here, so "Show it again" (back
+    on the account page) reuses the same command instead of minting a new token
+    on every visit. */
+const TOKEN_KEY = "dk_mcp_token";
+
+/** The `claude mcp add` line that wires a Claude Code session to Karl, carrying
+    the user's Personal Access Token in the Authorization header. */
+function connectCommand(token: string): string {
+  return `claude mcp add --transport http ${MCP_SERVER_NAME} ${MCP_URL} --header "Authorization: Bearer ${token}"`;
+}
 
 function CopySheetsIcon() {
   return (
@@ -47,11 +61,39 @@ function Connect(props: {
   onDone: () => void;
 }): React.JSX.Element {
   const [copied, setCopied] = useState(false);
+  const [token, setToken] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const karlAddress = formatKarlAddress(props.karlEmail);
+  const command = token ? connectCommand(token) : "";
+
+  const generate = async () => {
+    setError("");
+    setBusy(true);
+    const result = await createApiToken(MCP_SERVER_NAME);
+    setBusy(false);
+    if (!result) {
+      setError("Could not generate a token. Please try again.");
+      return;
+    }
+    setToken(result.token);
+    try {
+      sessionStorage.setItem(TOKEN_KEY, result.token);
+    } catch {
+      // Session storage may be unavailable; the token still shows this visit.
+    }
+  };
 
   const copy = async () => {
+    if (!command) return;
     try {
-      await navigator.clipboard.writeText(CONNECT_COMMAND);
+      await navigator.clipboard.writeText(command);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
@@ -85,24 +127,43 @@ function Connect(props: {
         <h1>Paste this into Claude Code</h1>
 
         <div className="copyrow">
-          <code className="mono">{CONNECT_COMMAND}</code>
+          <code className="mono">
+            {token
+              ? command
+              : "# Generate a token to fill your connection line."}
+          </code>
           <button
             className="copybtn"
             type="button"
             aria-label="Copy"
             data-copied={copied ? "1" : undefined}
             onClick={copy}
+            disabled={!token}
           >
             <CopySheetsIcon />
             <CopyTickIcon />
           </button>
         </div>
 
+        {error && (
+          <p role="alert" className={style.error}>
+            {error}
+          </p>
+        )}
+
         <p>
-          That is the whole install. It tells Claude Code where Karl lives and
-          which account is yours. Nothing gets downloaded, and no token is ever
-          shown to you or pasted by you.
+          That is the whole install. It tells Claude Code where Karl lives, and
+          the token inside it proves which account is yours. Nothing gets
+          downloaded.
         </p>
+
+        {token && (
+          <p className="small" style={{ marginTop: 10 }}>
+            Keep this line safe — the token in it is shown once. If you need a
+            fresh one, generate a new token on your account page.
+          </p>
+        )}
+
         <p className="small">
           Then open a new Claude Code session — it will tell you how many are
           waiting.
@@ -131,16 +192,32 @@ function Connect(props: {
         </div>
 
         <div className="btn-row">
-          <button className="btn" onClick={props.onDone}>
-            Done
-          </button>
+          {token ? (
+            <button className="btn" onClick={props.onDone}>
+              Done
+            </button>
+          ) : (
+            <button className="btn" onClick={generate} disabled={busy}>
+              {busy ? "Generating…" : "Generate my token"}
+            </button>
+          )}
+          {token && (
+            <button
+              className="btn ghost"
+              type="button"
+              onClick={generate}
+              disabled={busy}
+            >
+              New token
+            </button>
+          )}
         </div>
 
         <div className="later-note">
-          <b>Why this box is empty.</b> The connector is work item 8 in{" "}
-          <code>docs/mvp2.md</code> and does not exist yet. Printing a
-          real-looking line that points at nothing would be an NN 9.1 break, so
-          the mock says so instead.
+          <b>Keep that line safe.</b> The token in it is proof of which account
+          is yours, and it is shown once. If you lose it, revoke it on your
+          account page and paste a fresh one — the command is the same, only the
+          token changes.
         </div>
       </div>
     </>
