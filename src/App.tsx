@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import style from "./App.module.css";
 import { getActiveSession, getLoginUrl, logout, requestToken } from "./server";
-import { ApiTokens } from "./ApiTokens";
+import Account from "./Account";
 import Address from "./Address";
 import Connect from "./Connect";
 import Destination from "./Destination";
-import { formatKarlAddress } from "./karlAddress";
 
 function navigateTo(url: string) {
   window.location.href = url;
@@ -302,40 +301,14 @@ function App(props: { code: string | null }): React.JSX.Element {
             onDone={goToAccount}
           />
         ) : (
-          <div className="card narrow">
-            <h1>Your account</h1>
-            <p className="status">
-              <span className="led" aria-hidden="true" />
-              Connected — mail is landing in your Drive folder.
-            </p>
-
-            <div className="rows" style={{ marginTop: 24 }}>
-              <div className="rowitem">
-                <span className="k">Signed in as</span>
-                <span className="v">{userEmail}</span>
-              </div>
-              <div className="rowitem">
-                <span className="k">Your Karl address</span>
-                <span className="v mono-inline">
-                  {formatKarlAddress(karlEmail)}
-                </span>
-              </div>
-            </div>
-
-            {error && (
-              <p role="alert" className={style.error}>
-                {error}
-              </p>
-            )}
-
-            <div className="btn-row">
-              <button className="btn ghost" onClick={logoutGoogle} disabled={busy}>
-                Log out
-              </button>
-            </div>
-
-            <ApiTokens />
-          </div>
+          <Account
+            karlEmail={karlEmail}
+            userEmail={userEmail}
+            error={error}
+            busy={busy}
+            onShowConnect={() => setStage("connect")}
+            onLogout={logoutGoogle}
+          />
         )}
       </main>
 
