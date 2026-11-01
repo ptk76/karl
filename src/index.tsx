@@ -8,7 +8,10 @@ const url = new URL(location.href);
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AppProvider>
-      <App code={url.searchParams.get("code")} />
+      <App
+        code={url.searchParams.get("code")}
+        refused={url.searchParams.get("error") === "access_denied"}
+      />
     </AppProvider>
   </StrictMode>,
 );

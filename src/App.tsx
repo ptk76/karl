@@ -5,6 +5,7 @@ import Account from "./Account";
 import Address from "./Address";
 import Connect from "./Connect";
 import Destination from "./Destination";
+import SignInRefused from "./SignInRefused";
 
 function navigateTo(url: string) {
   window.location.href = url;
@@ -90,7 +91,12 @@ function ContinueIcon() {
   );
 }
 
-function App(props: { code: string | null }): React.JSX.Element {
+function App(props: {
+  code: string | null;
+  /** True when Google redirected back with an OAuth error, i.e. the user
+      declined the consent (access_denied) rather than granting it. */
+  refused?: boolean;
+}): React.JSX.Element {
   const [activeSession, setActiveSession] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -186,25 +192,28 @@ function App(props: { code: string | null }): React.JSX.Element {
         {loading ? (
           <p className="small">Loading…</p>
         ) : !activeSession ? (
-          <>
-            <nav className="steps" aria-label="Progress">
-              <ol>
-                <li className="on">
-                  <span className="n">1</span>
-                  <span>Sign in</span>
-                </li>
-                <li className="sep" aria-hidden="true" />
-                <li>
-                  <span className="n">2</span>
-                  <span>Your address</span>
-                </li>
-                <li className="sep" aria-hidden="true" />
-                <li>
-                  <span className="n">3</span>
-                  <span>Connect Claude Code</span>
-                </li>
-              </ol>
-            </nav>
+          props.refused ? (
+            <SignInRefused onRetry={() => navigateTo("/")} />
+          ) : (
+            <>
+              <nav className="steps" aria-label="Progress">
+                <ol>
+                  <li className="on">
+                    <span className="n">1</span>
+                    <span>Sign in</span>
+                  </li>
+                  <li className="sep" aria-hidden="true" />
+                  <li>
+                    <span className="n">2</span>
+                    <span>Your address</span>
+                  </li>
+                  <li className="sep" aria-hidden="true" />
+                  <li>
+                    <span className="n">3</span>
+                    <span>Connect Claude Code</span>
+                  </li>
+                </ol>
+              </nav>
 
             <div className="card narrow">
               <p className="eyebrow">Step 1 of 3</p>
@@ -285,7 +294,8 @@ function App(props: { code: string | null }): React.JSX.Element {
                 would be a second account to reconcile with the same Drive.
               </div>
             </div>
-          </>
+            </>
+          )
         ) : stage === "destination" ? (
           <Destination onNext={() => setStage("address")} />
         ) : stage === "address" ? (
