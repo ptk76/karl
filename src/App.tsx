@@ -2,9 +2,26 @@ import React, { useEffect, useState } from "react";
 import style from "./App.module.css";
 import { getActiveSession, getLoginUrl, logout, requestToken } from "./server";
 import { ApiTokens } from "./ApiTokens";
+import Connect from "./Connect";
+import { formatKarlAddress } from "./address";
 
 function navigateTo(url: string) {
   window.location.href = url;
+}
+
+// Remembers, for this browser session, whether the user has already been
+// through the connect step. A fresh sign-in shows it; a returning reload skips
+// straight to the account page.
+const STAGE_KEY = "dk_flow_stage";
+
+function readStage(): "connect" | "account" {
+  try {
+    return sessionStorage.getItem(STAGE_KEY) === "account"
+      ? "account"
+      : "connect";
+  } catch {
+    return "connect";
+  }
 }
 
 function CheckIcon() {
@@ -80,6 +97,16 @@ function App(props: { code: string | null }): React.JSX.Element {
   const [karlEmail, setKarlEmail] = useState("");
   const [error, setError] = useState("");
   const [newsletter, setNewsletter] = useState(false);
+  const [stage, setStage] = useState<"connect" | "account">(readStage);
+
+  const goToAccount = () => {
+    setStage("account");
+    try {
+      sessionStorage.setItem(STAGE_KEY, "account");
+    } catch {
+      // Storage unavailable; the stage still switches for this session.
+    }
+  };
 
   const loginGoogle = async () => {
     setError("");
@@ -97,6 +124,11 @@ function App(props: { code: string | null }): React.JSX.Element {
 
   const logoutGoogle = async () => {
     setBusy(true);
+    try {
+      sessionStorage.removeItem(STAGE_KEY);
+    } catch {
+      // Storage unavailable; nothing to clear.
+    }
     await logout();
     navigateTo("/");
   };
@@ -253,6 +285,12 @@ function App(props: { code: string | null }): React.JSX.Element {
               </div>
             </div>
           </>
+        ) : stage === "connect" ? (
+          <Connect
+            karlEmail={karlEmail}
+            userEmail={userEmail}
+            onDone={goToAccount}
+          />
         ) : (
           <div className="card narrow">
             <h1>Your account</h1>
@@ -269,7 +307,7 @@ function App(props: { code: string | null }): React.JSX.Element {
               <div className="rowitem">
                 <span className="k">Your Karl address</span>
                 <span className="v mono-inline">
-                  {karlEmail}@przemekkudla.pl
+                  {formatKarlAddress(karlEmail)}
                 </span>
               </div>
             </div>
