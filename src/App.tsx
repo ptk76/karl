@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import style from "./App.module.css";
 import { getActiveSession, getLoginUrl, logout, requestToken } from "./server";
 import { ApiTokens } from "./ApiTokens";
+import Address from "./Address";
 import Connect from "./Connect";
 import Destination from "./Destination";
-import { formatKarlAddress } from "./address";
+import { formatKarlAddress } from "./karlAddress";
 
 function navigateTo(url: string) {
   window.location.href = url;
@@ -15,7 +16,7 @@ function navigateTo(url: string) {
 // choice; a returning reload skips straight to the account page.
 const STAGE_KEY = "dk_flow_stage";
 
-type Stage = "destination" | "connect" | "account";
+type Stage = "destination" | "address" | "connect" | "account";
 
 function readStage(): Stage {
   try {
@@ -287,7 +288,13 @@ function App(props: { code: string | null }): React.JSX.Element {
             </div>
           </>
         ) : stage === "destination" ? (
-          <Destination onNext={() => setStage("connect")} />
+          <Destination onNext={() => setStage("address")} />
+        ) : stage === "address" ? (
+          <Address
+            karlEmail={karlEmail}
+            userEmail={userEmail}
+            onNext={() => setStage("connect")}
+          />
         ) : stage === "connect" ? (
           <Connect
             karlEmail={karlEmail}

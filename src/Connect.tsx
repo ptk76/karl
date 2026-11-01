@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { formatKarlAddress } from "./address";
+import { formatKarlAddress } from "./karlAddress";
 
 /** The command that wires Claude Code to Karl's MCP endpoint. The mock shows a
     placeholder because the connector that emits a real, working line is not
