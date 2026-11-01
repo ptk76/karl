@@ -1,46 +1,32 @@
-.container {
-  color: white;
-  max-width: 34rem;
-  margin: 0 auto;
-  padding: 2rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.container button {
-  min-height: 44px;
-  padding: 0 1rem;
-  font: inherit;
-  cursor: pointer;
-}
-
-.container button:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
+/* Callout used for error/alert text on the light monochrome theme. The design
+   carries no hue, so an error is a sunk block with an ink rule, not a colour. */
 .error {
-  color: #ff9d85;
+  background: var(--sunk);
+  border-left: 2px solid var(--ink);
+  padding: 12px 16px;
+  margin: 0 0 1.1em;
+  font-size: .92rem;
 }
 
 .tokenReveal {
-  border: 1px solid #888;
-  border-radius: 0.5rem;
-  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   max-width: 100%;
+  margin: 1.5rem 0;
 }
 
 .tokenValue {
   word-break: break-all;
   user-select: all;
-  background: rgba(255, 255, 255, 0.08);
-  padding: 0.5rem;
-  border-radius: 0.25rem;
+  background: var(--sunk);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .92rem;
 }
 
 .tokenList {
@@ -58,12 +44,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border: 1px solid #555;
-  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0;
   padding: 0.5rem 0.75rem;
 }
 
 .tokenList span {
   overflow-wrap: anywhere;
 }
-
