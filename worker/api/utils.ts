@@ -25,11 +25,19 @@ export async function getValidToken(
   client: GoogleToken,
   db: UsersDB,
 ): Promise<string | null> {
-  console.log("USER", user);
-  if (client.isTokenValid(user.access_expires ?? 0))
-    return user.access_token ?? null;
-  if (!user.refresh_token) return null;
+  console.log("USER", user.access_token);
+  console.log("USER", user.refresh_token);
+  if (await isAccessTokenValidWithGoogle(user, client)) {
+    console.log("TOKEN VALID 1");
+    return user.access_token!;
+  }
 
+  // if (client.isTokenValid(user.access_expires ?? 0))
+  // return user.access_token ?? null;
+  if (!user.refresh_token) {
+    console.log("NO REFRESH TOKEN");
+    return null;
+  }
   try {
     const refreshed = await client.refreshAccessToken(user.refresh_token);
     await db.updateUserTokens({
@@ -37,9 +45,32 @@ export async function getValidToken(
       access_token: refreshed.access_token,
       access_expires: Date.now() + refreshed.expires_in * 1000,
     });
+    console.log("TOKEN VALID 2");
     return refreshed.access_token;
   } catch (e: any) {
     console.log("TOKEN ERROR", e);
     return null;
+  }
+}
+
+/**
+ * Ask Google (not just the local expiry timestamp) whether a user's stored
+ * access_token is still valid. This catches tokens that were revoked
+ * server-side or expired early, which `getValidToken`'s `isTokenValid`
+ * timestamp check cannot see.
+ *
+ * Returns false when the user has no token, when Google rejects it, or when
+ * the check itself fails (e.g. a network error).
+ */
+export async function isAccessTokenValidWithGoogle(
+  user: UserTableRow,
+  client: GoogleToken,
+): Promise<boolean> {
+  if (!user.access_token) return false;
+  try {
+    const info = await client.checkGoogleTokenValidity(user.access_token);
+    return info.valid;
+  } catch {
+    return false;
   }
 }
