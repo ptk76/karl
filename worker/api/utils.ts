@@ -25,17 +25,13 @@ export async function getValidToken(
   client: GoogleToken,
   db: UsersDB,
 ): Promise<string | null> {
-  console.log("USER", user.access_token);
-  console.log("USER", user.refresh_token);
   if (await isAccessTokenValidWithGoogle(user, client)) {
-    console.log("TOKEN VALID 1");
     return user.access_token!;
   }
 
   // if (client.isTokenValid(user.access_expires ?? 0))
   // return user.access_token ?? null;
   if (!user.refresh_token) {
-    console.log("NO REFRESH TOKEN");
     return null;
   }
   try {
@@ -45,10 +41,8 @@ export async function getValidToken(
       access_token: refreshed.access_token,
       access_expires: Date.now() + refreshed.expires_in * 1000,
     });
-    console.log("TOKEN VALID 2");
     return refreshed.access_token;
   } catch (e: any) {
-    console.log("TOKEN ERROR", e);
     return null;
   }
 }
