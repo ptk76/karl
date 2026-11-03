@@ -75,19 +75,14 @@ export async function emailHandler(
   const secret = env.GOOGLE_CLIENT_SECRET;
   const client = new GoogleToken(secret);
 
-  let accessToken: string | null = "";
-  if (client.isTokenValid(user.access_expires ?? 0)) {
-    accessToken = user.access_token!;
-  } else {
-    accessToken = await getValidToken(user, client, db);
-    if (accessToken === null) {
-      await sendEmail(creds, {
-        to: user.email,
-        subject: authError.subject,
-        text: authError.message,
-      });
-      return;
-    }
+  let accessToken: string | null = await getValidToken(user, client, db);
+  if (accessToken === null) {
+    await sendEmail(creds, {
+      to: user.email,
+      subject: authError.subject,
+      text: authError.message,
+    });
+    return;
   }
 
   const drive = new GoogleDrive(accessToken);
