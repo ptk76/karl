@@ -87,7 +87,7 @@ export async function emailHandler(
 
   const drive = new GoogleDrive(accessToken);
   const filename = safeFileName(
-    email.subject ?? `${crypto.randomUUID().split("-")[0]}.txt`,
+    email.subject ?? `${crypto.randomUUID().split("-")[0]}.md`,
   );
 
   try {
