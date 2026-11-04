@@ -4,8 +4,9 @@ Status: **copy is in the code** (`worker/api/messages.ts`, wired in
 `worker/api/email.ts`, operator subjects in `worker/index.ts`). Mail 2 is
 capped at one per sender address per day (`unknown_sender_notices`, migration
 0003). For now every mail goes out in English; the Polish copy stays in
-`messages.ts` until accounts get a language setting. Not built yet: the
-"Confirm every saved email" setting (Q3).
+`messages.ts` until accounts get a language setting. Mail 1 always goes out
+and its footer has no "turn it off" link until the "Confirm every saved
+email" setting (Q3) exists.
 
 ## What changes, and why
 

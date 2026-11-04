@@ -19,7 +19,6 @@ const SITE = "https://dearkarl.com";
 const CONTACT = "hi@dearkarl.com";
 const PRIVACY = `${SITE}/privacy`;
 const TERMS = `${SITE}/terms`;
-const SETTINGS = `${SITE}/settings`;
 
 const link = (url: string, text = url) => `<a href="${url}">${text}</a>`;
 const mailto = (address: string) => `<a href="mailto:${address}">${address}</a>`;
@@ -79,7 +78,7 @@ export function savedEmail(
         p("Karl"),
         footer(
           "pl",
-          `Dostajesz to po każdym zapisanym mailu. Możesz to wyłączyć w ustawieniach: ${link(SETTINGS)}`,
+          "Dostajesz to po każdym zapisanym mailu.",
         ),
       ),
     };
@@ -94,7 +93,7 @@ export function savedEmail(
       p("Karl"),
       footer(
         "en",
-        `You get this after every saved email. Turn it off in your settings: ${link(SETTINGS)}`,
+        "You get this after every saved email.",
       ),
     ),
   };
