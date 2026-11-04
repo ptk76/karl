@@ -13,7 +13,7 @@ import {
   isTokensRevokeRequest,
 } from "../../shared/api";
 import UsersDB, { UserTableRow } from "../db";
-import { getPayload, getSid, getValidToken } from "./utils";
+import { getPayload, getSid, getValidToken, getUniqueLogin } from "./utils";
 import ErrorResponse, { ApiErrors } from "./errors";
 import { tokenHandler } from "./tokens";
 
@@ -78,20 +78,24 @@ export async function loginHandler(
     const decoded = JSON.parse(
       atob(jwtPayload.replace(/-/g, "+").replace(/_/g, "/")),
     );
-    const karlLogin = crypto.randomUUID().split("-")[0];
-
     const usersDb = new UsersDB(db);
 
     const user = (await usersDb.getUser(decoded.email)) as any;
+
+    // Existing users keep their login; new users get a unique one derived from
+    // their email (re-rolled until it doesn't collide with a stored login).
+    const login =
+      user?.login ?? (await getUniqueLogin(decoded.email, usersDb));
+
     const responsePayload: ResponsePayload = {
       type: "PROFILE",
       email: decoded.email,
-      login: user ? user.login : karlLogin,
+      login,
     };
 
     const userRow: UserTableRow = {
       email: decoded.email,
-      login: user ? user.karlLogin : karlLogin,
+      login,
       access_token: access.access_token,
       access_expires: convertExpireToDate(access.expires_in),
       refresh_token: access.refresh_token,

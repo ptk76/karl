@@ -68,3 +68,31 @@ export async function isAccessTokenValidWithGoogle(
     return false;
   }
 }
+
+/**
+ * Derive a unique login for a new user from their base email.
+ *
+ * The login is seeded from the email's local part (before "@", lowercased).
+ * If that login is already taken in the database, a numeric suffix is appended
+ * and the lookup is repeated until an unused login is found.
+ *
+ * Example: `John.Doe@example.com` -> "john.doe", "john.doe1", "john.doe2", ...
+ *
+ * Note: the `users.login` column is UNIQUE, so a concurrent insert that loses
+ * the check-and-set race still fails safe at the DB constraint.
+ */
+export async function getUniqueLogin(
+  email: string,
+  db: UsersDB,
+): Promise<string> {
+  const base = email.split("@")[0].toLowerCase() || "user";
+  let login = base;
+  let suffix = 0;
+
+  while (await db.loginExists(login)) {
+    suffix += 1;
+    login = `${base}${suffix}`;
+  }
+
+  return login;
+}

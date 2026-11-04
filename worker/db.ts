@@ -37,6 +37,17 @@ class UsersDB {
   }
 
   /**
+   * Returns true when a login is already taken by any user.
+   */
+  async loginExists(login: string): Promise<boolean> {
+    const row = await this.db
+      .prepare(`SELECT 1 AS found FROM users WHERE login = ?`)
+      .bind(login)
+      .first();
+    return row !== null;
+  }
+
+  /**
    * Fetch a user by session. Returns null if not found.
    */
   async getUserBySid(sid: string): Promise<UserTableRow | null> {
