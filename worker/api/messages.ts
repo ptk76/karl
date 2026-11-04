@@ -20,36 +20,58 @@ const CONTACT = "hi@dearkarl.com";
 const PRIVACY = `${SITE}/privacy`;
 const TERMS = `${SITE}/terms`;
 
-const link = (url: string, text = url) => `<a href="${url}">${text}</a>`;
-const mailto = (address: string) => `<a href="mailto:${address}">${address}</a>`;
-const p = (...lines: string[]) => `<p>${lines.join("<br>\n")}</p>`;
+const FONT = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
 
+const link = (url: string, text = url, style = "color:#1a56db") =>
+  `<a href="${url}" style="${style}">${text}</a>`;
+const mailto = (address: string, style?: string) =>
+  link(`mailto:${address}`, address, style);
+const p = (...lines: string[]) =>
+  `<p style="margin:0 0 16px">${lines.join("<br>\n")}</p>`;
+
+const MUTED_LINK = "color:#666;text-decoration:underline";
+const dot = " &nbsp;·&nbsp; ";
+
+/**
+ * Footer as a full-width band under the mail: three short lines instead of
+ * a column, so it stays out of the way of the message itself.
+ */
 function footer(lang: Lang, whyLine: string): string {
+  const site = link(SITE, "dearkarl.com", MUTED_LINK);
+  const contact = mailto(CONTACT, MUTED_LINK);
   const lines =
     lang === "pl"
       ? [
-          "--",
-          `DearKarl · ${link(SITE)}`,
-          `Kontakt: ${mailto(CONTACT)}`,
-          "Technologie 21 Aleksander Jaworski",
-          "ul. Pionerska 7/2, 53-213 Wrocław",
-          "NIP: 6912215667 · wpis do CEIDG",
-          `Polityka prywatności: ${link(PRIVACY)}`,
-          `Regulamin: ${link(TERMS)}`,
+          [
+            `<strong>DearKarl</strong>`,
+            site,
+            `Kontakt: ${contact}`,
+            link(PRIVACY, "Polityka prywatności", MUTED_LINK),
+            link(TERMS, "Regulamin", MUTED_LINK),
+          ].join(dot),
+          [
+            "Technologie 21 Aleksander Jaworski",
+            "ul. Pionerska 7/2, 53-213 Wrocław",
+            "NIP: 6912215667, wpis do CEIDG",
+          ].join(dot),
           whyLine,
         ]
       : [
-          "--",
-          `DearKarl · ${link(SITE)}`,
-          `Contact: ${mailto(CONTACT)}`,
-          "Technologie 21 Aleksander Jaworski",
-          "Pionerska 7/2, 53-213 Wrocław, Poland",
-          "VAT ID (NIP): 6912215667 · registered in CEIDG",
-          `Privacy policy: ${link(PRIVACY)}`,
-          `Terms: ${link(TERMS)}`,
+          [
+            `<strong>DearKarl</strong>`,
+            site,
+            `Contact: ${contact}`,
+            link(PRIVACY, "Privacy policy", MUTED_LINK),
+            link(TERMS, "Terms", MUTED_LINK),
+          ].join(dot),
+          [
+            "Technologie 21 Aleksander Jaworski",
+            "Pionerska 7/2, 53-213 Wrocław, Poland",
+            "VAT ID (NIP): 6912215667, registered in CEIDG",
+          ].join(dot),
           whyLine,
         ];
-  return `<p style="color:#666;font-size:12px">${lines.join("<br>\n")}</p>`;
+  return `<tr><td style="background:#f6f6f6;border-top:1px solid #e3e3e3;padding:16px 24px;color:#666;font-size:12px;line-height:1.6">${lines.join("<br>\n")}</td></tr>`;
 }
 
 const ACCOUNT_WHY: Record<Lang, string> = {
@@ -57,7 +79,20 @@ const ACCOUNT_WHY: Record<Lang, string> = {
   pl: "Dostajesz to, bo masz konto w DearKarl.",
 };
 
-const body = (...blocks: string[]) => blocks.join("\n");
+/**
+ * Mail layout: a full-width table (tables survive Gmail/Outlook, divs with
+ * max-width don't), the message text in a readable column, and the footer —
+ * always the last argument — as a band across the whole width.
+ */
+const body = (...blocks: string[]) => {
+  const foot = blocks.pop() ?? "";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;${FONT}">
+<tr><td style="padding:24px 24px 8px;color:#1f1f1f;font-size:15px;line-height:1.5"><div style="max-width:600px">
+${blocks.join("\n")}
+</div></td></tr>
+${foot}
+</table>`;
+};
 
 // ---------------------------------------------------------------- 1. Saved
 
