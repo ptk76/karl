@@ -1,15 +1,29 @@
 import PostalMime from "postal-mime";
-import UsersDB from "../db";
+import UsersDB, { claimUnknownSenderNotice } from "../db";
 import GoogleDrive, { DriveAuthError } from "../google/drive";
 import sendEmail, {
   ElasticEmailCredentials,
-  escapeHtml,
   sendDiagnosticEmail,
 } from "../send-email";
-import { authError, driveError, unknownUser, wrongRecipient } from "./messages";
+import {
+  EmailContent,
+  Lang,
+  couldNotSaveEmail,
+  diagAuthRejectedSubject,
+  savedEmail,
+  signInAgainEmail,
+  unknownSenderEmail,
+  wrongAddressEmail,
+} from "./messages";
 import GoogleToken from "../google/token";
 import { getValidToken } from "./utils";
 import { htmlToMarkdown } from "../../shared/html-to-md";
+
+/**
+ * All mail goes out in English for now. The Polish copy is kept in
+ * messages.ts for when accounts get a language setting.
+ */
+const MAIL_LANG: Lang = "en";
 
 /** Google Drive rejects these in names; also cap the length. */
 function safeFileName(name: string): string {
@@ -44,31 +58,44 @@ export async function emailHandler(
   if (senderAuthenticationFailed(message)) {
     await sendDiagnosticEmail(
       creds,
-      "Rejected: sender authentication failed",
+      diagAuthRejectedSubject,
       `rawSize=${message.rawSize}`,
       diagnosticTo,
     );
     return;
   }
 
+  const send = (to: string, content: EmailContent) =>
+    sendEmail(creds, { to, subject: content.subject, text: content.html });
+  // Quoted back in every mail so the user knows which message it is about.
+  const subject = email.subject?.trim() || "—";
+
   const db = new UsersDB(env.DB);
   const user = await db.getUser(message.from);
   if (!user) {
-    await sendEmail(creds, {
-      to: message.from,
-      subject: unknownUser.subject,
-      text: unknownUser.message,
-    });
+    if (await claimUnknownSenderNotice(env.DB, message.from, Date.now())) {
+      await send(
+        message.from,
+        unknownSenderEmail(MAIL_LANG, { subject, from: message.from }),
+      );
+    }
     return;
   }
 
+  const lang = MAIL_LANG;
+  const toAddress = email.to?.[0]?.address ?? message.to;
   const emailToLogin = email.to?.[0]?.address?.split("@")[0];
   if (!emailToLogin || user.login !== emailToLogin) {
-    await sendEmail(creds, {
-      to: message.from,
-      subject: wrongRecipient.subject,
-      text: wrongRecipient.message,
-    });
+    // The envelope recipient is always on the DearKarl domain.
+    const karlDomain = message.to.split("@")[1] ?? "";
+    await send(
+      message.from,
+      wrongAddressEmail(lang, {
+        subject,
+        to: toAddress,
+        karlAddress: `${user.login}@${karlDomain}`,
+      }),
+    );
     return;
   }
 
@@ -81,11 +108,7 @@ export async function emailHandler(
   } else {
     accessToken = await getValidToken(user, client, db);
     if (accessToken === null) {
-      await sendEmail(creds, {
-        to: user.email,
-        subject: authError.subject,
-        text: authError.message,
-      });
+      await send(user.email, signInAgainEmail(lang, { subject }));
       return;
     }
   }
@@ -102,20 +125,17 @@ export async function emailHandler(
       filename,
       email.html ? htmlToMarkdown(email.html) : (email.text ?? "NONE"),
     );
-    await sendEmail(creds, {
-      to: user.email,
-      subject: `Saved to Drive: ${filename}`,
-      text: `The file was created: ${escapeHtml(filename)}`,
-    });
+    await send(user.email, savedEmail(lang, { subject, filename }));
   } catch (e: any) {
     // Only an actual authorization failure should tell the user to log in
     // again — otherwise the advice is wrong and sends them in a loop.
     const isAuthProblem = e instanceof DriveAuthError;
-    await sendEmail(creds, {
-      to: user.email,
-      subject: isAuthProblem ? authError.subject : driveError.subject,
-      text: isAuthProblem ? authError.message : driveError.message,
-    });
+    await send(
+      user.email,
+      isAuthProblem
+        ? signInAgainEmail(lang, { subject })
+        : couldNotSaveEmail(lang, { subject }),
+    );
   }
 }
 

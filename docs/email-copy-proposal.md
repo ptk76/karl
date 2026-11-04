@@ -1,8 +1,11 @@
 # Email copy — proposal for review
 
-Status: **draft, nothing in the code has changed yet.** Comment inline
-(`> Olek: …` under any block), and once the wording is agreed the copy goes
-into `worker/api/messages.ts` and `worker/api/email.ts`.
+Status: **copy is in the code** (`worker/api/messages.ts`, wired in
+`worker/api/email.ts`, operator subjects in `worker/index.ts`). Mail 2 is
+capped at one per sender address per day (`unknown_sender_notices`, migration
+0003). For now every mail goes out in English; the Polish copy stays in
+`messages.ts` until accounts get a language setting. Not built yet: the
+"Confirm every saved email" setting (Q3).
 
 ## What changes, and why
 

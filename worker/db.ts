@@ -240,5 +240,31 @@ class ApiTokensDB {
   }
 }
 
+/** One "I don't know this address" mail per sender address per this window. */
+export const UNKNOWN_SENDER_NOTICE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Claim the right to send the unknown-sender mail to `address`. Returns true
+ * (and records the send) if none went out in the last 24 h. A single UPSERT,
+ * so two mails arriving at once cannot both win.
+ */
+export async function claimUnknownSenderNotice(
+  db: D1Database,
+  address: string,
+  now: number,
+): Promise<boolean> {
+  const row = await db
+    .prepare(
+      `INSERT INTO unknown_sender_notices (address, last_sent)
+       VALUES (?, ?)
+       ON CONFLICT(address) DO UPDATE SET last_sent = excluded.last_sent
+       WHERE unknown_sender_notices.last_sent <= ?
+       RETURNING address`,
+    )
+    .bind(address.toLowerCase(), now, now - UNKNOWN_SENDER_NOTICE_WINDOW_MS)
+    .first();
+  return row !== null;
+}
+
 export default UsersDB;
 export { ApiTokensDB };

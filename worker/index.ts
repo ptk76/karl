@@ -3,6 +3,7 @@ import emailHandler from "./api/email";
 import ErrorResponse, { ApiErrors } from "./api/errors";
 import { readElasticCredentials, sendDiagnosticEmail } from "./send-email";
 import { MCP_PATH } from "../shared/api";
+import { diagErrorSubject } from "./api/messages";
 import { mcpHandler } from "./mcp/handler";
 
 export default {
@@ -37,14 +38,15 @@ export default {
     // waitUntil() returns immediately, so a try/catch around it would never
     // see a rejection — the handler has to catch on the promise itself.
     ctx.waitUntil(
-      emailHandler(env, message, creds).catch((error) =>
-        sendDiagnosticEmail(
+      emailHandler(env, message, creds).catch((error) => {
+        const detail = error?.message ?? String(error);
+        return sendDiagnosticEmail(
           creds,
-          "ERROR",
-          error?.message ?? String(error),
+          diagErrorSubject(detail),
+          detail,
           (env as { DIAGNOSTIC_EMAIL?: string }).DIAGNOSTIC_EMAIL,
-        ),
-      ),
+        );
+      }),
     );
   },
 } satisfies ExportedHandler<Env>;
