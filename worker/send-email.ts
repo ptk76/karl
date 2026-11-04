@@ -33,7 +33,9 @@ async function sendEmail(
   email: Email,
 ): Promise<void> {
   const body = {
-    Recipients: [{ Email: email.to }],
+    // Transactional sends take {To: [...]} and, unlike /v4/emails, do not
+    // append an "UNSUBSCRIBE" link — these are service mails, not marketing.
+    Recipients: { To: [email.to] },
     Content: {
       From: email.from ?? creds.username,
       Subject: email.subject,
@@ -46,7 +48,7 @@ async function sendEmail(
     },
   };
 
-  const res = await fetch("https://api.elasticemail.com/v4/emails", {
+  const res = await fetch("https://api.elasticemail.com/v4/emails/transactional", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
