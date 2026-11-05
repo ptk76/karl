@@ -76,6 +76,7 @@ export async function emailHandler(
   const client = new GoogleToken(secret);
 
   let accessToken: string | null = await getValidToken(user, client, db);
+  console.info("ACCESS TOKEN", accessToken);
   if (accessToken === null) {
     await sendEmail(creds, {
       to: user.email,
@@ -106,6 +107,7 @@ export async function emailHandler(
     // Only an actual authorization failure should tell the user to log in
     // again — otherwise the advice is wrong and sends them in a loop.
     const isAuthProblem = e instanceof DriveAuthError;
+    console.info("ERROR 2", e);
     await sendEmail(creds, {
       to: user.email,
       subject: isAuthProblem ? authError.subject : driveError.subject,
