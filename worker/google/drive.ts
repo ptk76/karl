@@ -45,6 +45,7 @@ class GoogleDrive {
       `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
       { headers: this.#headers },
     );
+    console.info("DRIVE searchRes", searchRes);
     if (!searchRes.ok) {
       throw driveError(
         searchRes.status,
@@ -52,7 +53,6 @@ class GoogleDrive {
         "Failed to search for folder",
       );
     }
-
     const searchData = (await searchRes.json()) as { files?: DriveFile[] };
     if (searchData.files && searchData.files.length > 0) {
       return searchData.files[0].id;
@@ -69,6 +69,7 @@ class GoogleDrive {
         }),
       },
     );
+    console.info("DRIVE createRes", createRes);
 
     if (!createRes.ok) {
       throw driveError(
@@ -79,6 +80,7 @@ class GoogleDrive {
     }
 
     const created = (await createRes.json()) as DriveFile;
+    console.info("DRIVE created", created);
     if (!created?.id) throw new Error("Drive did not return a folder id");
     return created.id;
   }
@@ -174,7 +176,11 @@ class GoogleDrive {
         "Failed to fetch file metadata",
       );
     }
-    return (await metaRes.json()) as { id: string; name: string; mimeType: string };
+    return (await metaRes.json()) as {
+      id: string;
+      name: string;
+      mimeType: string;
+    };
   }
 
   /**
