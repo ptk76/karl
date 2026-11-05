@@ -47,12 +47,10 @@ class GoogleDrive {
     );
     console.info("DRIVE searchRes", JSON.stringify(searchRes));
     if (!searchRes.ok) {
-      console.info("DRIVE ERROR searchRes");
-      throw driveError(
-        searchRes.status,
-        await searchRes.text(),
-        "Failed to search for folder",
-      );
+      const text = await searchRes.text();
+
+      console.info("DRIVE ERROR searchRes", text);
+      throw driveError(searchRes.status, text, "Failed to search for folder");
     }
     const searchData = (await searchRes.json()) as { files?: DriveFile[] };
     if (searchData.files && searchData.files.length > 0) {
