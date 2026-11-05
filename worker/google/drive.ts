@@ -47,6 +47,7 @@ class GoogleDrive {
     );
     console.info("DRIVE searchRes", searchRes);
     if (!searchRes.ok) {
+      console.info("DRIVE ERROR searchRes");
       throw driveError(
         searchRes.status,
         await searchRes.text(),
@@ -72,6 +73,7 @@ class GoogleDrive {
     console.info("DRIVE createRes", createRes);
 
     if (!createRes.ok) {
+      console.info("DRIVE ERROR createRes");
       throw driveError(
         createRes.status,
         await createRes.text(),
