@@ -45,7 +45,7 @@ class GoogleDrive {
       `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
       { headers: this.#headers },
     );
-    console.info("DRIVE searchRes", searchRes);
+    console.info("DRIVE searchRes", JSON.stringify(searchRes));
     if (!searchRes.ok) {
       console.info("DRIVE ERROR searchRes");
       throw driveError(
