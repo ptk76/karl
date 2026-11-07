@@ -24,6 +24,8 @@ export async function getValidToken(
   user: UserTableRow,
   client: GoogleToken,
   db: UsersDB,
+  /** Told why no token could be had, so the caller can report the real cause. */
+  onFailure?: (reason: string) => void,
 ): Promise<string | null> {
   if (await isAccessTokenValidWithGoogle(user, client)) {
     console.info("VALID TOKEN 1");
@@ -34,6 +36,7 @@ export async function getValidToken(
   // return user.access_token ?? null;
   if (!user.refresh_token) {
     console.info("INVALID REFRESH TOKEN");
+    onFailure?.("no refresh_token stored (user logged out, or never granted offline access)");
     return null;
   }
   try {
@@ -47,6 +50,7 @@ export async function getValidToken(
     return refreshed.access_token;
   } catch (e: any) {
     console.info("ERROR", e);
+    onFailure?.(e?.message ?? String(e));
     return null;
   }
 }
