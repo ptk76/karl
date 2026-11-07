@@ -65,6 +65,55 @@ describe("error mapping", () => {
     );
   });
 
+  const google403 = (reason: string, detailReason?: string) =>
+    JSON.stringify({
+      error: {
+        code: 403,
+        message: "x",
+        errors: [{ domain: "global", reason, message: "x" }],
+        ...(detailReason ? { details: [{ reason: detailReason }] } : {}),
+      },
+    });
+
+  it.each([
+    ["storageQuotaExceeded"],
+    ["domainPolicy"],
+    ["userRateLimitExceeded"],
+    ["rateLimitExceeded"],
+  ])("does not treat a 403 %s as an auth problem", async (reason) => {
+    fetchMock.mockResolvedValue(new Response(google403(reason), { status: 403 }));
+
+    const drive = new GoogleDrive("tok");
+    const err = await drive.getFileContent("id1", "text/plain").catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err).not.toBeInstanceOf(DriveAuthError);
+    // The real reason must survive into the message for the diagnostic mail.
+    expect(err.message).toContain(reason);
+  });
+
+  it("treats a 403 for a missing Drive scope as an auth problem", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        google403("insufficientPermissions", "ACCESS_TOKEN_SCOPE_INSUFFICIENT"),
+        { status: 403 },
+      ),
+    );
+
+    const drive = new GoogleDrive("tok");
+    await expect(drive.getFileContent("id1", "text/plain")).rejects.toThrow(
+      DriveAuthError,
+    );
+  });
+
+  it("does not treat a 403 with an unparseable body as an auth problem", async () => {
+    fetchMock.mockResolvedValue(new Response("<html>nope</html>", { status: 403 }));
+
+    const drive = new GoogleDrive("tok");
+    await expect(drive.getFileContent("id1", "text/plain")).rejects.not.toThrow(
+      DriveAuthError,
+    );
+  });
+
   it("throws a plain Error on other statuses", async () => {
     fetchMock.mockResolvedValue(new Response("nope", { status: 500 }));
 

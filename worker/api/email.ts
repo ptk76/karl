@@ -75,9 +75,18 @@ export async function emailHandler(
   const secret = env.GOOGLE_CLIENT_SECRET;
   const client = new GoogleToken(secret);
 
-  let accessToken: string | null = await getValidToken(user, client, db);
-  console.info("ACCESS TOKEN", accessToken);
+  let tokenFailure = "unknown";
+  const accessToken = await getValidToken(user, client, db, (reason) => {
+    tokenFailure = reason;
+  });
   if (accessToken === null) {
+    console.error("TOKEN REFRESH FAILED", user.email, tokenFailure);
+    await sendDiagnosticEmail(
+      creds,
+      `Token refresh failed for ${user.email}`,
+      tokenFailure,
+      diagnosticTo,
+    );
     await sendEmail(creds, {
       to: user.email,
       subject: authError.subject,
@@ -107,7 +116,14 @@ export async function emailHandler(
     // Only an actual authorization failure should tell the user to log in
     // again — otherwise the advice is wrong and sends them in a loop.
     const isAuthProblem = e instanceof DriveAuthError;
-    console.info("ERROR 2", e);
+    const detail = e?.message ?? String(e);
+    console.error("DRIVE SAVE FAILED", user.email, detail);
+    await sendDiagnosticEmail(
+      creds,
+      `Drive save failed for ${user.email} (${isAuthProblem ? "auth" : "other"})`,
+      detail,
+      diagnosticTo,
+    );
     await sendEmail(creds, {
       to: user.email,
       subject: isAuthProblem ? authError.subject : driveError.subject,
