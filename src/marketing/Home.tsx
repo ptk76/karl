@@ -69,13 +69,22 @@ const graph = [
     operatingSystem: "Any (email); Claude Code on macOS, Linux or Windows",
     license: "https://opensource.org/licenses/MIT",
     codeRepository: SITE.repo,
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Self-hosted, open source" },
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+      description: "Self-hosted, open source",
+    },
     publisher: { "@id": refs.org },
   },
   {
     "@type": "FAQPage",
     "@id": `${SITE.url}/#faq`,
-    mainEntity: FAQ.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: plain(f.a) } })),
+    mainEntity: FAQ.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: plain(f.a) },
+    })),
   },
 ];
 
@@ -135,20 +144,24 @@ export default function Home(): React.JSX.Element {
       </div>
 
       <div className="lead-card">
-        <span className="flag-pill">Opening soon</span>
+        <span className="flag-pill">Try it now</span>
         <h2>We'll run it for you.</h2>
         <ul className="prereq">
           <li>
-            <b>Sign in with Google.</b> One approval, one folder — never your mailbox.
+            <b>Sign in with Google.</b> One approval, one folder — never your
+            mailbox.
           </li>
           <li>
-            <b>You get your own address.</b> Forward anything to it, from any device.
+            <b>You get your own address.</b> Forward anything to it, from any
+            device.
           </li>
           <li>
             <b>Paste one line into Claude Code.</b> That is the whole install.
           </li>
         </ul>
-        <Waitlist id="email-top" />
+        <a className="btn" href="/app">
+          Start
+        </a>
         <p className="cta-note">
           Two more questions on the next page — they decide what gets built
           first. Karl writes once, when it opens. No other mail.
@@ -158,9 +171,10 @@ export default function Home(): React.JSX.Element {
       <div className="alt-card">
         <h3>Prefer to run it yourself? It works today.</h3>
         <p className="small">
-          The whole pipe runs on your own accounts — free, unlimited, forever. No
-          server of ours sits in the path, so there is nothing of ours to trust. You need a domain on
-          Cloudflare (about $10 a year), a GitHub account, and about fifteen minutes with Claude Code.
+          The whole pipe runs on your own accounts — free, unlimited, forever.
+          No server of ours sits in the path, so there is nothing of ours to
+          trust. You need a domain on Cloudflare (about $10 a year), a GitHub
+          account, and about fifteen minutes with Claude Code.
         </p>
         <a className="btn ghost sm" href="https://github.com/jaal/dearkarl">
           Self-host it free →
@@ -169,41 +183,48 @@ export default function Home(): React.JSX.Element {
 
       <section className="lp-sec" id="how">
         <h2>
-          <span className="g" aria-hidden="true">✺</span>How it works
+          <span className="g" aria-hidden="true">
+            ✺
+          </span>
+          How it works
         </h2>
-        <p className="lede">Four steps. You do the first three once, then it runs.</p>
+        <p className="lede">
+          Four steps. You do the first three once, then it runs.
+        </p>
         <ol className="walk">
           <li>
             <StepIcon kind="ochre" />
             <h4>Sign in with Google</h4>
             <p>
-              One approval. Karl makes a folder in your Drive and can see that folder and nothing
-              else — not the rest of your Drive, and never your mailbox.
+              One approval. Karl makes a folder in your Drive and can see that
+              folder and nothing else — not the rest of your Drive, and never
+              your mailbox.
             </p>
           </li>
           <li>
             <StepIcon kind="clay" />
             <h4>Karl hands you an address</h4>
             <p>
-              Something like <code>claude-x7k2m9@in.dearkarl.com</code>. It is yours and it is
-              secret. Only mail from addresses you have named gets through; everything else bounces.
+              Something like <code>claude-x7k2m9@in.dearkarl.com</code>. It is
+              yours and it is secret. Only mail from addresses you have named
+              gets through; everything else bounces.
             </p>
           </li>
           <li>
             <StepIcon kind="sage" />
             <h4>Paste one line into Claude Code</h4>
             <p>
-              It tells Claude Code where to find your folder. Nothing is downloaded, and no token
-              is ever shown to you or pasted by you.
+              It tells Claude Code where to find your folder. Nothing is
+              downloaded, and no token is ever shown to you or pasted by you.
             </p>
           </li>
           <li>
             <StepIcon kind="slate" />
             <h4>Forward anything, from anywhere</h4>
             <p>
-              An article on your phone, a note you dictated walking home, a receipt. It becomes a
-              text file in your Drive folder within seconds, and your next Claude session opens
-              knowing it arrived.
+              An article on your phone, a note you dictated walking home, a
+              receipt. It becomes a text file in your Drive folder within
+              seconds, and your next Claude session opens knowing it arrived.
             </p>
           </li>
         </ol>
@@ -211,7 +232,10 @@ export default function Home(): React.JSX.Element {
 
       <section className="lp-sec">
         <h2>
-          <span className="g" aria-hidden="true">◆</span>Questions
+          <span className="g" aria-hidden="true">
+            ◆
+          </span>
+          Questions
         </h2>
         <div className="faq">
           {FAQ.map((f) => (
@@ -225,11 +249,14 @@ export default function Home(): React.JSX.Element {
 
       <section className="lp-sec" id="waitlist">
         <h2>
-          <span className="g" aria-hidden="true">✉</span>Join the waiting list
+          <span className="g" aria-hidden="true">
+            ✉
+          </span>
+          Join the waiting list
         </h2>
         <p className="lede">
-          Get told when the hosted version opens. No other mail, and the list is not
-          shared with anyone.
+          Get told when the hosted version opens. No other mail, and the list is
+          not shared with anyone.
         </p>
         <Waitlist id="email-bottom" label="Join" />
       </section>
