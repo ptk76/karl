@@ -137,17 +137,17 @@ function App(props: {
       // Storage unavailable; nothing to clear.
     }
     await logout();
-    navigateTo("/");
+    navigateTo("/app");
   };
 
   const initToken = async (code: string) => {
     setError("");
     setBusy(true);
 
-    window.history.replaceState({}, "", "/");
+    window.history.replaceState({}, "", "/app");
     await requestToken(code);
     setBusy(false);
-    navigateTo("/");
+    navigateTo("/app");
   };
 
   const init = async () => {
@@ -193,7 +193,7 @@ function App(props: {
           <p className="small">Loading…</p>
         ) : !activeSession ? (
           props.refused ? (
-            <SignInRefused onRetry={() => navigateTo("/")} />
+            <SignInRefused onRetry={() => navigateTo("/app")} />
           ) : (
             <>
               <nav className="steps" aria-label="Progress">
@@ -325,7 +325,7 @@ function App(props: {
       <footer className="site-foot">
         <span>Your mail lands in your Drive, not ours.</span>
         <span>
-          <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a>
+          <a href="/app">Sign in</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
         </span>
       </footer>
     </>

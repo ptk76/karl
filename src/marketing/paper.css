@@ -1,0 +1,355 @@
+/* ───────────────────────────────────────────────────────────────
+   dearkarl — the paper look (marketing site)
+
+   This is the marketing design ported from dearkarl.com's paper.css.
+   Every rule is scoped under `.dk` so it cannot collide with the app
+   (mvp2.css) which uses a deliberately different, monochrome design.
+   Both are loaded on the same origin, on different routes.
+
+   Rules this file has to keep:
+   - Loads nothing from another origin. Jost is bundled from @fontsource.
+   - Needs no JavaScript. Every interaction here is CSS or HTML
+     (<details>, :has(), user-select: all).
+   - No inline style attributes in pages; icon fills are classes.
+   ─────────────────────────────────────────────────────────────── */
+
+.dk {
+  --bg: #eeece7;
+  --sunk: #e5e2db;
+  --ghost: #e8e5df;
+  --ink: #1c1b19;
+  --muted: #5c5a56;          /* 5.9:1 on the paper */
+  --line: #cdc9c1;
+  --on-ink: #eeece7;         /* text set on a solid ink fill */
+
+  --read: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --head: "Jost", ui-sans-serif, system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --ic-ochre: #dcc078; --ic-clay: #d99a80; --ic-sage: #aebd9f;
+  --ic-wine: #a85a63; --ic-slate: #a3b5c3;
+
+  --measure: 61rem;
+  color-scheme: light;
+
+  margin: 0;
+  box-sizing: border-box;
+  min-height: 100vh; display: flex; flex-direction: column;
+  background-color: var(--bg); color: var(--ink);
+  font-family: var(--read); font-size: 16px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  /* the rib: vertical, faint, like laid paper. Sub-pixel on purpose. */
+  background-image: repeating-linear-gradient(90deg,
+    rgba(70,60,45,.028) 0 1px, transparent 1px 4px);
+  overflow-x: clip;
+}
+
+.dk *, .dk *::before, .dk *::after { box-sizing: border-box; }
+.dk img, .dk svg { max-width: 100%; }
+.dk :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .dk * { animation: none !important; transition: none !important; }
+}
+.dk a { color: var(--ink); }
+.dk code { font-family: var(--mono); font-size: .88em; }
+.dk .visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ── type ────────────────────────────────────────────────── */
+/* Jost for the voice that labels things, system for reading */
+.dk :is(h1, h2, h3, h4, .brand, .btn, .faq summary, .steps) { font-family: var(--head); }
+.dk h1 {
+  font-size: clamp(2.3rem, 5.5vw, 3.3rem); line-height: 1.08; letter-spacing: -.02em;
+  font-weight: 400; margin: 0 0 .32em; text-wrap: balance;
+}
+.dk h2 { font-size: 1.3rem; font-weight: 500; margin: 34px 0 .5em; }
+.dk h3 { font-size: .98rem; font-weight: 500; margin: 0 0 .4em; }
+.dk h4 { font-weight: 500; }
+.dk p { margin: 0 0 1em; }
+.dk p:last-child { margin-bottom: 0; }
+.dk .lede { color: var(--muted); font-size: 1.14rem; line-height: 1.55; letter-spacing: -.01em; }
+.dk .small { font-size: .85rem; color: var(--muted); }
+/* labels: Jost, lowercase, spaced out — like the axis labels on a printed menu */
+.dk :is(.eyebrow, .badge, .flag-pill, .later, .rowitem .k) {
+  font-family: var(--head); text-transform: lowercase; letter-spacing: .16em; font-weight: 400;
+}
+.dk .eyebrow { font-size: .8rem; color: var(--muted); margin: 0 0 1.5em; }
+
+/* ── the frame ───────────────────────────────────────────── */
+/* Two verticals down the margins, and horizontals that run the full width
+   of the window and cross them — never a closed box. */
+.dk main { flex: 1; width: 100%; }
+.dk .scr {
+  position: relative; max-width: var(--measure); margin: 0 auto;
+  padding: 30px 44px 72px;
+}
+.dk .scr::before {
+  content: ""; position: absolute; inset: 0 12px; pointer-events: none;
+  border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+}
+.dk .flow { max-width: 36rem; margin-left: auto; margin-right: auto; }
+.dk :is(.brandbar, .lp-sec, .sitefoot) {
+  border-style: solid; border-width: 0;
+  border-image-source: linear-gradient(var(--line) 0 0);
+  border-image-slice: 1; border-image-outset: 0 100vw;
+}
+
+.dk .brandbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 4px 0 18px; margin-bottom: 34px; border-bottom-width: 1px;
+}
+.dk .brand {
+  display: inline-flex; align-items: baseline; gap: 8px;
+  font-weight: 500; letter-spacing: .02em; color: var(--ink); text-decoration: none;
+}
+.dk .brand:hover { text-decoration: none; }
+.dk .badge {
+  font-size: .72rem; color: var(--muted);
+  border: 1px solid var(--line); padding: 5px 10px;
+}
+
+/* ── buttons and fields ──────────────────────────────────── */
+.dk .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  font: inherit; font-family: var(--head); font-size: .95rem; font-weight: 500; letter-spacing: .02em;
+  cursor: pointer; text-decoration: none;
+  border: 1px solid var(--ink); padding: 13px 28px; border-radius: 999px;
+  background: var(--ink); color: var(--on-ink);
+  transition: background .12s ease, color .12s ease;
+}
+.dk .btn:hover { background: var(--bg); color: var(--ink); text-decoration: none; }
+.dk .btn:active { background: var(--sunk); }
+.dk .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.dk .btn.ghost:hover { border-color: var(--ink); }
+.dk .btn.sm { padding: 9px 18px; font-size: .88rem; }
+.dk .btnrow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 26px; }
+
+.dk .field {
+  display: block; width: 100%; margin: 0; font: inherit; font-size: .95rem;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: 0;
+  background: var(--bg); color: var(--ink);
+}
+.dk .field:hover { border-color: var(--muted); }
+.dk .field:focus-visible { border-color: var(--ink); outline-offset: 0; }
+
+/* the waiting-list form: one field and its button on one line, wrapping on phones */
+.dk .signup { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.dk .signup .field { flex: 1 1 15rem; width: auto; border-radius: 999px; padding: 12px 20px; }
+.dk .signup .btn { flex: 0 0 auto; width: auto; }
+
+/* text the reader copies: one click selects the whole line, no script */
+.dk .mono {
+  display: block; background: var(--sunk); padding: 19px 20px;
+  font-family: var(--mono); font-size: .95rem;
+  word-break: break-all; user-select: all; -webkit-user-select: all;
+}
+.dk .mono.addr { font-size: 1.02rem; font-weight: 600; }
+
+/* ── signup-flow components (used by the account pages) ──── */
+.dk .steps { display: flex; align-items: center; gap: 9px; margin: 0 0 24px; font-size: .8rem; color: var(--muted); }
+.dk .steps span { display: inline-flex; align-items: center; gap: 7px; }
+.dk .steps i {
+  font-style: normal; width: 21px; height: 21px; border-radius: 50%; display: grid; place-items: center;
+  border: 1px solid var(--line); background: var(--bg); font-size: .7rem; font-weight: 700;
+}
+.dk .steps .now { color: var(--ink); font-weight: 600; }
+.dk .steps .now i { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.dk .steps .was i { background: transparent; border-color: var(--ink); }
+.dk .steps hr { flex: 1; border: 0; border-top: 1px solid var(--line); margin: 0; }
+
+.dk .fence { list-style: none; margin: 0 0 22px; padding: 0; border-top: 1px solid var(--line); }
+.dk .fence li { display: flex; gap: 12px; padding: 13px 2px; border-bottom: 1px solid var(--line); font-size: .93rem; }
+.dk .fence .g { color: var(--ink); font-weight: 700; }
+.dk .fence .r, .dk .fence .n { color: var(--muted); }
+.dk .fence .r { font-weight: 700; }
+.dk .fence b { font-weight: 650; }
+.dk .fence .ico { margin-top: 1px; }
+
+/* the newsletter opt-in — one boolean, unticked (decisions/0011) */
+.dk .optin {
+  display: flex; gap: 14px; align-items: flex-start;
+  margin: 30px 0 0; padding: 18px; cursor: pointer; border: 1px solid var(--line);
+}
+.dk .optin:hover { border-color: var(--ink); }
+.dk .optin input { flex: 0 0 auto; width: 17px; height: 17px; margin: 3px 0 0; accent-color: var(--ink); cursor: pointer; }
+.dk .optin-t { font-size: .92rem; font-weight: 650; letter-spacing: -.01em; }
+.dk .optin-d { display: block; margin-top: 5px; font-size: .85rem; font-weight: 400; color: var(--muted); }
+.dk .optin:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+
+.dk .pick {
+  display: flex; gap: 16px; border: 1px solid var(--line);
+  padding: 20px; margin: 0 0 -1px; background: transparent; width: 100%;
+  font: inherit; text-align: left; color: var(--ink);
+}
+.dk .pick.on { border-color: var(--ink); position: relative; z-index: 1; box-shadow: inset 0 0 0 1px var(--ink); }
+.dk .pick.off { background: var(--ghost); color: var(--muted); }
+.dk .pick.off b { text-decoration: line-through; text-decoration-thickness: 1px; }
+.dk .pick s { text-decoration: none; flex: 0 0 auto; width: 17px; height: 17px; border-radius: 50%; border: 1px solid var(--muted); margin-top: 5px; }
+.dk .pick.on s { border-color: var(--ink); background: var(--ink); box-shadow: inset 0 0 0 3px var(--bg); }
+.dk .pick b { font-weight: 650; }
+.dk .pick .d { font-size: .88rem; color: var(--muted); display: block; }
+.dk .pick.on .d { color: var(--ink); }
+.dk .later { margin-left: auto; font-size: .66rem; border: 1px solid var(--line); padding: 4px 8px; color: var(--muted); }
+
+.dk .rule { border-left: 2px solid var(--ink); padding: 4px 0 4px 20px; margin: 0 0 24px; font-size: .93rem; }
+.dk .rule p { margin: 0 0 .6em; }
+.dk .opt { border: 1px dashed var(--line); padding: 14px 16px; margin: 0 0 18px; font-size: .89rem; color: var(--muted); }
+.dk .opt b { color: var(--ink); }
+.dk .notice { background: var(--sunk); padding: 15px 17px; margin: 0 0 18px; font-size: .92rem; }
+
+.dk .rows { border-top: 1px solid var(--line); margin: 22px 0; }
+.dk .rowitem { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline;
+  justify-content: space-between; padding: 15px 2px; border-bottom: 1px solid var(--line); }
+.dk .rowitem .k { font-size: .68rem; color: var(--muted); }
+.dk .rowitem .v { font-weight: 600; }
+.dk .rowitem .v.m { font-family: var(--mono); font-size: .9rem; }
+.dk .zone { border: 1px solid var(--line); padding: 0 20px; margin-top: 36px; }
+.dk .zone .rowitem { align-items: center; padding: 18px 0; }
+.dk .zone .rowitem:last-child { border-bottom: 0; }
+.dk .zone .rowitem > div { flex: 1 1 24rem; }
+
+.dk .state { display: inline-flex; align-items: center; gap: 9px; font-size: .9rem; font-weight: 600; }
+.dk .state s { text-decoration: none; width: 9px; height: 9px; border-radius: 50%; background: var(--ink); }
+.dk .state.bad { color: var(--muted); }
+.dk .state.bad s { background: transparent; box-shadow: inset 0 0 0 1px var(--ink); }
+
+/* ── landing ─────────────────────────────────────────────── */
+.dk .hero { padding: 8px 0 6px; max-width: 42rem; }
+.dk .hero h1 { font-size: clamp(2.6rem, 6.4vw, 4.2rem); }
+.dk .hero .lede { font-size: 1.2rem; }
+
+/* the main option carries the weight: a solid ink edge against the
+   secondary option's hairline. Without hue, edge weight is the whole signal. */
+.dk .lead-card { margin-top: 44px; border: 1px solid var(--ink); padding: 36px; position: relative; }
+.dk .flag-pill {
+  position: absolute; top: -12px; left: 28px;
+  background: var(--ink); color: var(--on-ink);
+  font-size: .66rem; padding: 5px 12px;
+}
+.dk .lead-card h2 { font-size: 1.75rem; margin: 8px 0 .4em; letter-spacing: -.03em; }
+.dk .alt-card { margin-top: -1px; border: 1px solid var(--line); padding: 30px 36px; }
+.dk .alt-card h3 { font-size: 1.12rem; margin-bottom: .3em; }
+
+.dk .prereq { list-style: none; margin: 0 0 20px; padding: 0; font-size: .95rem; }
+.dk .prereq li { position: relative; padding-left: 1.6rem; color: var(--muted); }
+.dk .prereq li + li { margin-top: .5rem; }
+.dk .prereq li::before { content: "→"; position: absolute; left: 0; color: var(--ink); }
+.dk .prereq b { color: var(--ink); font-weight: 650; }
+.dk .cta-note { font-size: .86rem; color: var(--muted); margin: 14px 0 0; }
+
+.dk .lp-sec { margin-top: 64px; padding-top: 44px; border-top-width: 1px; }
+.dk .lp-sec > h2 { display: flex; align-items: center; gap: 12px; font-size: 1.5rem; letter-spacing: -.02em; margin: 0 0 .5em; }
+.dk .lp-sec > h2 .g { font-size: .8em; line-height: 1; }
+.dk .lp-sec > .lede { margin-bottom: 26px; }
+
+/* the walk: a drawing per step and a hairline joining them; order is the reading order */
+.dk .walk { list-style: none; margin: 0; padding: 0; }
+.dk .walk li { position: relative; padding: 0 0 24px 56px; }
+.dk .walk li::after { content: ""; position: absolute; left: 18px; top: 42px; bottom: 4px; width: 1px; background: var(--line); }
+.dk .walk li:last-child { padding-bottom: 0; }
+.dk .walk li:last-child::after { display: none; }
+.dk .walk .ico { display: block; position: absolute; left: 2px; top: 0; width: 32px; height: 32px; stroke-width: 1.1; }
+.dk .walk h4 { margin: 6px 0 .3em; font-size: 1.02rem; }
+.dk .walk p { margin: 0; color: var(--muted); font-size: .93rem; }
+
+.dk .faq { border-top: 1px solid var(--line); }
+.dk .faq details { border-bottom: 1px solid var(--line); }
+.dk .faq summary {
+  cursor: pointer; padding: 16px 2px; font-weight: 500; font-size: 1rem;
+  list-style: none; display: flex; justify-content: space-between; gap: 16px; align-items: center;
+}
+.dk .faq summary::-webkit-details-marker { display: none; }
+.dk .faq summary::after { content: "+"; font-weight: 400; font-size: 1.2rem; }
+.dk .faq details[open] summary::after { content: "–"; }
+.dk .faq .a { padding: 0 2px 18px; color: var(--muted); font-size: .95rem; max-width: 62ch; }
+.dk .faq .a p { margin: 0 0 .8em; }
+.dk .faq .a p:last-child { margin: 0; }
+
+/* ── line icons ──────────────────────────────────────────── */
+/* Stroke is always ink, fill a muted hue. The black line carries the
+   contrast, so the fill can stay pale. */
+.dk .ico { width: 22px; height: 22px; flex: 0 0 auto; fill: none; stroke: var(--ink);
+  stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.dk .ico .f { fill: var(--f, transparent); }
+.dk .f-ochre { --f: var(--ic-ochre); } .dk .f-clay { --f: var(--ic-clay); } .dk .f-sage { --f: var(--ic-sage); }
+.dk .f-wine { --f: var(--ic-wine); } .dk .f-slate { --f: var(--ic-slate); }
+
+/* ── long-form documents (privacy, terms) ────────────────── */
+.dk .doc { max-width: 42rem; }
+.dk .doc h2 { font-size: 1.25rem; margin: 44px 0 .5em; scroll-margin-top: 20px; }
+.dk .doc h3 { font-size: 1.02rem; margin: 28px 0 .4em; }
+.dk .doc :is(ul, ol) { padding-left: 1.3rem; }
+.dk .doc li + li { margin-top: .35rem; }
+.dk .doc table { border-collapse: collapse; width: 100%; font-size: .9rem; margin: 0 0 1.2em; }
+.dk .doc :is(th, td) { text-align: left; vertical-align: top; padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line); }
+.dk .doc th { font-family: var(--head); font-weight: 500; }
+.dk .doc blockquote { margin: 0 0 1em; border-left: 2px solid var(--ink); padding: 2px 0 2px 18px; color: var(--muted); }
+.dk .doc hr { border: 0; border-top: 1px solid var(--line); margin: 36px 0; }
+.dk .toc { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 16px 0; margin: 0 0 12px; font-size: .9rem; }
+.dk mark.todo { background: var(--ink); color: var(--on-ink); padding: 0 .3em; }
+
+/* ── blog ────────────────────────────────────────────────── */
+.dk .crumbs { font-family: var(--head); font-size: .8rem; letter-spacing: .08em; text-transform: lowercase; color: var(--muted); margin: -14px 0 22px; }
+.dk .crumbs a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+.dk .crumbs a:hover { color: var(--ink); border-color: var(--ink); }
+.dk .meta { font-size: .85rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.dk .meta a { color: var(--muted); }
+.dk .postlist { list-style: none; margin: 30px 0; padding: 0; border-top: 1px solid var(--line); max-width: 42rem; }
+.dk .postlist li { padding: 22px 0; border-bottom: 1px solid var(--line); }
+.dk .postlist h2 { margin: 0 0 .3em; font-size: 1.3rem; }
+.dk .postlist h2 a { text-decoration: none; }
+.dk .postlist h2 a:hover { text-decoration: underline; }
+.dk .postlist p { margin: 0 0 .5em; color: var(--muted); }
+.dk .postlist .meta { margin: 0; }
+.dk .post > header { margin-bottom: 26px; }
+.dk .answer { border: 1px solid var(--ink); padding: 20px 24px; margin: 0 0 34px; }
+.dk .answer .q { font-family: var(--head); text-transform: lowercase; letter-spacing: .12em; font-size: .78rem; color: var(--muted); margin: 0 0 .6em; }
+.dk .answer p:last-child { font-size: 1.05rem; }
+.dk .faq-block h3 { margin-top: 22px; }
+.dk .post-cta { margin-top: 56px; padding-top: 30px; border-top: 1px solid var(--line); }
+.dk .post-cta h2 { margin-top: 0; }
+
+/* ── site footer ─────────────────────────────────────────── */
+.dk .sitefoot { border-top-width: 1px; margin-top: 40px; padding: 26px 24px 40px; }
+.dk .sitefoot .in {
+  max-width: var(--measure); margin: 0 auto; display: flex; flex-wrap: wrap;
+  gap: 12px 32px; justify-content: space-between; align-items: baseline;
+  font-size: .85rem; color: var(--muted);
+}
+.dk .sitefoot nav { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.dk .sitefoot a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+.dk .sitefoot a:hover { color: var(--ink); border-color: var(--ink); }
+.dk .sitefoot .who { max-width: 34rem; margin: 0; }
+.dk .sitefoot .who b { color: var(--ink); font-weight: 600; }
+
+/* ── phones ──────────────────────────────────────────────── */
+/* Every screen's primary button clears the fold at 390x664. Nothing here
+   deletes copy — it tightens type and padding. */
+@media (max-width: 640px) {
+  .dk .scr { padding: 18px 24px 60px; }
+  .dk .scr::before { inset: 0 8px; }
+  .dk .brandbar { padding: 2px 0 14px; }
+  .dk h1 { font-size: 2rem; }
+  .dk .lede { font-size: .98rem; }
+  .dk .eyebrow { margin-bottom: .6em; }
+  .dk .steps { margin-bottom: 14px; font-size: .74rem; gap: 6px; }
+  .dk .fence { margin-bottom: 16px; }
+  .dk .fence li { padding: 9px 2px; font-size: .9rem; }
+  .dk .mono { padding: 13px 14px; font-size: .9rem; }
+  .dk .pick { padding: 12px 14px; margin-bottom: 9px; }
+  .dk .optin { margin-top: 20px; padding: 14px; }
+  .dk .rule, .dk .notice { padding: 12px 14px; }
+  .dk .hero { padding: 4px 0 2px; }
+  .dk .hero h1 { font-size: 2.2rem; }
+  .dk .hero .lede { font-size: 1rem; }
+  .dk .lead-card { margin-top: 28px; padding: 24px 18px 20px; }
+  .dk .lead-card h2 { font-size: 1.3rem; }
+  .dk .alt-card { padding: 20px 18px; }
+  .dk .prereq { margin-bottom: 16px; font-size: .9rem; }
+  .dk .prereq li + li { margin-top: .35rem; }
+  .dk .rowitem { padding: 11px 2px; }
+  .dk .btn, .dk .signup .btn { width: 100%; }
+  .dk .btnrow .btn { width: auto; flex: 1 1 0; }
+}
