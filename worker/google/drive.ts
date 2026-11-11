@@ -14,11 +14,42 @@ export class DriveAuthError extends Error {
   }
 }
 
-function driveError(status: number, body: string, context: string): Error {
+/**
+ * 403 reasons that really mean "this token may not do this", so signing in
+ * again (and granting Drive access) can fix them. Every other 403 — a full
+ * drive (`storageQuotaExceeded`), a Workspace admin block (`domainPolicy`),
+ * rate limits — is not an authorization problem, and telling the user to log
+ * in again only sends them in a loop.
+ */
+const AUTH_403_REASONS = new Set([
+  "authError",
+  "insufficientPermissions",
+  "ACCESS_TOKEN_SCOPE_INSUFFICIENT",
+]);
+
+/**
+ * Pull the machine-readable reasons out of a Google API error body:
+ * `error.errors[].reason` (Drive v3) and `error.details[].reason` (ErrorInfo).
+ */
+export function driveErrorReasons(body: string): string[] {
+  try {
+    const err = (JSON.parse(body) as { error?: any }).error;
+    if (!err || typeof err !== "object") return [];
+    return [...(err.errors ?? []), ...(err.details ?? [])]
+      .map((e: any) => e?.reason)
+      .filter((r: unknown): r is string => typeof r === "string");
+  } catch {
+    return [];
+  }
+}
+
+export function driveError(status: number, body: string, context: string): Error {
   const message = `${context}: ${status} ${body}`;
-  return status === 401 || status === 403
-    ? new DriveAuthError(message)
-    : new Error(message);
+  const isAuth =
+    status === 401 ||
+    (status === 403 &&
+      driveErrorReasons(body).some((r) => AUTH_403_REASONS.has(r)));
+  return isAuth ? new DriveAuthError(message) : new Error(message);
 }
 
 class GoogleDrive {
