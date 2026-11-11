@@ -40,10 +40,48 @@ describe("mail copy", () => {
       expect(m.html).toContain("NIP");
       expect(m.html).toContain("6912215667");
       expect(m.html).toContain("mailto:hi@dearkarl.com");
-      expect(m.html).toContain("https://dearkarl.com/privacy");
-      expect(m.html).toContain("https://dearkarl.com/terms");
-      expect(m.html).not.toContain("przemekkudla");
       expect(m.html).not.toContain("Dear Karl");
+    }
+  });
+
+  it("links the legal pages in the mail's language", () => {
+    const en = savedEmail("en", { subject: "s", filename: "f" }).html;
+    expect(en).toContain('href="https://dearkarl.com/privacy"');
+    expect(en).toContain('href="https://dearkarl.com/terms"');
+
+    const pl = savedEmail("pl", { subject: "s", filename: "f" }).html;
+    expect(pl).toContain('href="https://dearkarl.com/polityka-prywatnosci"');
+    expect(pl).toContain('href="https://dearkarl.com/regulamin"');
+  });
+
+  it("sends sign-in and sign-up links to the app, with matching link text", () => {
+    const app = "https://karl.przemekkudla.pl";
+    const mails = [
+      signInAgainEmail("en", { subject: "s" }),
+      signInAgainEmail("pl", { subject: "s" }),
+      unknownSenderEmail("en", { subject: "s", from: "a@b.c" }),
+      unknownSenderEmail("pl", { subject: "s", from: "a@b.c" }),
+    ];
+    for (const m of mails) {
+      expect(m.html).toMatch(new RegExp(`<a href="${app}"[^>]*>${app}</a>`));
+    }
+  });
+
+  it("never shows one address as link text while linking to another", () => {
+    const mails = (["en", "pl"] as const).flatMap((l) => [
+      savedEmail(l, { subject: "s", filename: "f" }),
+      unknownSenderEmail(l, { subject: "s", from: "a@b.c" }),
+      wrongAddressEmail(l, { subject: "s", to: "x@k", karlAddress: "y@k" }),
+      signInAgainEmail(l, { subject: "s" }),
+      couldNotSaveEmail(l, { subject: "s" }),
+    ]);
+    for (const m of mails) {
+      for (const [, href, text] of m.html.matchAll(
+        /<a href="([^"]*)"[^>]*>([^<]*)<\/a>/g,
+      )) {
+        const host = text.match(/([a-z0-9-]+\.)+[a-z]{2,}/i)?.[0];
+        if (host) expect(href).toContain(host);
+      }
     }
   });
 

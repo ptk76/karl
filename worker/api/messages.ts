@@ -16,9 +16,20 @@ export interface EmailContent {
 }
 
 const SITE = "https://dearkarl.com";
+/**
+ * Where users sign in and create an account. dearkarl.com is only the landing
+ * page for now (no sign-in there), so these links go straight to the app.
+ * Switch to SITE once dearkarl.com serves the app.
+ */
+const APP = "https://karl.przemekkudla.pl";
 const CONTACT = "hi@dearkarl.com";
-const PRIVACY = `${SITE}/privacy`;
-const TERMS = `${SITE}/terms`;
+const LEGAL: Record<Lang, { privacy: string; terms: string }> = {
+  en: { privacy: `${SITE}/privacy`, terms: `${SITE}/terms` },
+  pl: {
+    privacy: `${SITE}/polityka-prywatnosci`,
+    terms: `${SITE}/regulamin`,
+  },
+};
 
 const FONT = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
 
@@ -46,8 +57,8 @@ function footer(lang: Lang, whyLine: string): string {
             `<strong>DearKarl</strong>`,
             site,
             `Kontakt: ${contact}`,
-            link(PRIVACY, "Polityka prywatności", MUTED_LINK),
-            link(TERMS, "Regulamin", MUTED_LINK),
+            link(LEGAL.pl.privacy, "Polityka prywatności", MUTED_LINK),
+            link(LEGAL.pl.terms, "Regulamin", MUTED_LINK),
           ].join(dot),
           [
             "Technologie 21 Aleksander Jaworski",
@@ -61,8 +72,8 @@ function footer(lang: Lang, whyLine: string): string {
             `<strong>DearKarl</strong>`,
             site,
             `Contact: ${contact}`,
-            link(PRIVACY, "Privacy policy", MUTED_LINK),
-            link(TERMS, "Terms", MUTED_LINK),
+            link(LEGAL.en.privacy, "Privacy policy", MUTED_LINK),
+            link(LEGAL.en.terms, "Terms", MUTED_LINK),
           ].join(dot),
           [
             "Technologie 21 Aleksander Jaworski",
@@ -152,7 +163,7 @@ export function unknownSenderEmail(
         ),
         p(
           "Jeśli masz już konto, wyślij maila z adresu Google przypisanego do konta.",
-          `Jeśli nie, załóż je na ${link(SITE)}.`,
+          `Jeśli nie, załóż je na ${link(APP)}.`,
         ),
         p("Karl"),
         footer(
@@ -171,7 +182,7 @@ export function unknownSenderEmail(
       ),
       p(
         "If you already have an account, send from the Google address you signed up with.",
-        `If not, you can create one at ${link(SITE)}.`,
+        `If not, you can create one at ${link(APP)}.`,
       ),
       p("Karl"),
       footer(
@@ -235,7 +246,7 @@ export function signInAgainEmail(
           `nie zapisałem „${subject}”, bo wygasł mój dostęp do Twojego Dysku Google.`,
         ),
         p(
-          `Zaloguj się ponownie na ${link(SITE)} i wyślij maila jeszcze raz.`,
+          `Zaloguj się ponownie na ${link(APP)} i wyślij maila jeszcze raz.`,
         ),
         p("Karl"),
         footer("pl", ACCOUNT_WHY.pl),
@@ -249,7 +260,7 @@ export function signInAgainEmail(
       p(
         `I couldn't save "${subject}" because my access to your Google Drive has expired. Nothing was saved.`,
       ),
-      p(`Sign in again at ${link(SITE)}, then send the email once more.`),
+      p(`Sign in again at ${link(APP)}, then send the email once more.`),
       p("Karl"),
       footer("en", ACCOUNT_WHY.en),
     ),
