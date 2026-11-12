@@ -65,15 +65,16 @@ describe("mail copy", () => {
     }
   });
 
-  it("sends sign-in and sign-up to dearkarl.com", () => {
-    for (const m of [
-      signInAgainEmail({ subject: "s" }),
-      unknownSenderEmail({ subject: "s", from: "a@b.c" }),
-    ]) {
-      expect(m.html).toContain(
-        '<a href="https://dearkarl.com" style="color:#1a56db">https://dearkarl.com</a>',
-      );
-    }
+  it("sends sign-up to dearkarl.com", () => {
+    expect(unknownSenderEmail({ subject: "s", from: "a@b.c" }).html).toContain(
+      '<a href="https://dearkarl.com" style="color:#1a56db">https://dearkarl.com</a>',
+    );
+  });
+
+  it("sends the sign-in-again mail to the reconnect page in the app", () => {
+    expect(signInAgainEmail({ subject: "s" }).html).toContain(
+      '<a href="https://dearkarl.com/app/reconnect" style="color:#1a56db">https://dearkarl.com/app/reconnect</a>',
+    );
   });
 
   it("never shows one address as link text while linking to another", () => {

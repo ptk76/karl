@@ -16,6 +16,8 @@ export interface EmailContent {
 /** Every link in user mail points here; karl.przemekkudla.pl is only the test deployment. */
 const SITE = "https://dearkarl.com";
 const CONTACT = "hi@dearkarl.com";
+/** The app page that renews Karl's Google access (src/Reconnect.tsx). */
+const RECONNECT = `${SITE}/app/reconnect`;
 /** Mail is English-only; the legal pages exist in both languages, so link both. */
 const PRIVACY_EN = `${SITE}/privacy`;
 const PRIVACY_PL = `${SITE}/polityka-prywatnosci`;
@@ -153,7 +155,10 @@ export function signInAgainEmail(v: { subject: string }): EmailContent {
       p(
         `I couldn't save "${subject}" because my access to your Google Drive has expired. Nothing was saved.`,
       ),
-      p(`Sign in again at ${link(SITE)}, then send the email once more.`),
+      p(
+        `Reconnect your Google Drive here: ${link(RECONNECT)}`,
+        "Then send the email once more.",
+      ),
       p("Karl"),
       footer(ACCOUNT_WHY),
     ),
