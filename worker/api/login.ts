@@ -91,6 +91,7 @@ export async function loginHandler(
       type: "PROFILE",
       email: decoded.email,
       login,
+      isNewUser: user === null,
     };
 
     const userRow: UserTableRow = {

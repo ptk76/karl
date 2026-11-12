@@ -6,23 +6,47 @@ import Address from "./Address";
 import Connect from "./Connect";
 import Destination from "./Destination";
 import SignInRefused from "./SignInRefused";
+import Reconnect from "./Reconnect";
 
 function navigateTo(url: string) {
   window.location.href = url;
 }
 
-// Remembers, for this browser session, whether the user has already been
-// through the onboarding steps. A fresh sign-in starts at the destination
-// choice; a returning reload skips straight to the account page.
+// Where a signed-in user lands. Onboarding (destination → address → connect)
+// runs only right after the sign-in that created the account; everyone else —
+// a returning user, a new tab, a reconnect — goes straight to the account page.
 const STAGE_KEY = "dk_flow_stage";
+// Set when the user starts a reconnect from /app/reconnect, so the account page
+// can confirm that Drive access is back once Google sends them home.
+const RECONNECT_KEY = "dk_reconnecting";
 
 type Stage = "destination" | "address" | "connect" | "account";
 
 function readStage(): Stage {
   try {
-    return sessionStorage.getItem(STAGE_KEY) === "account" ? "account" : "destination";
+    return sessionStorage.getItem(STAGE_KEY) === "destination" ? "destination" : "account";
   } catch {
-    return "destination";
+    return "account";
+  }
+}
+
+function writeSession(key: string, value: string | null) {
+  try {
+    if (value === null) sessionStorage.removeItem(key);
+    else sessionStorage.setItem(key, value);
+  } catch {
+    // Storage unavailable; the app still works for this page view.
+  }
+}
+
+/** Reads and clears the one-shot "just reconnected" flag. */
+function takeReconnected(): boolean {
+  try {
+    const v = sessionStorage.getItem(RECONNECT_KEY) === "1";
+    sessionStorage.removeItem(RECONNECT_KEY);
+    return v;
+  } catch {
+    return false;
   }
 }
 
@@ -96,6 +120,9 @@ function App(props: {
   /** True when Google redirected back with an OAuth error, i.e. the user
       declined the consent (access_denied) rather than granting it. */
   refused?: boolean;
+  /** /app/reconnect: Karl lost access to the user's Drive and they came from
+      the "sign in again" mail to renew it. */
+  reconnect?: boolean;
 }): React.JSX.Element {
   const [activeSession, setActiveSession] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -105,19 +132,17 @@ function App(props: {
   const [error, setError] = useState("");
   const [newsletter, setNewsletter] = useState(false);
   const [stage, setStage] = useState<Stage>(readStage);
+  const [reconnected, setReconnected] = useState(false);
 
   const goToAccount = () => {
     setStage("account");
-    try {
-      sessionStorage.setItem(STAGE_KEY, "account");
-    } catch {
-      // Storage unavailable; the stage still switches for this session.
-    }
+    writeSession(STAGE_KEY, "account");
   };
 
   const loginGoogle = async () => {
     setError("");
     setBusy(true);
+    if (props.reconnect) writeSession(RECONNECT_KEY, "1");
 
     const loginUrl = await getLoginUrl();
     if (!loginUrl) {
@@ -131,11 +156,7 @@ function App(props: {
 
   const logoutGoogle = async () => {
     setBusy(true);
-    try {
-      sessionStorage.removeItem(STAGE_KEY);
-    } catch {
-      // Storage unavailable; nothing to clear.
-    }
+    writeSession(STAGE_KEY, null);
     await logout();
     navigateTo("/app");
   };
@@ -145,7 +166,10 @@ function App(props: {
     setBusy(true);
 
     window.history.replaceState({}, "", "/app");
-    await requestToken(code);
+    const profile = await requestToken(code);
+    // A brand-new account runs onboarding; an existing one (including a
+    // reconnect) goes to the account page.
+    writeSession(STAGE_KEY, profile?.isNewUser ? "destination" : "account");
     setBusy(false);
     navigateTo("/app");
   };
@@ -157,6 +181,7 @@ function App(props: {
       setActiveSession(true);
       setUserEmail(session.userEmail);
       setKarlEmail(session.karlEmail);
+      setReconnected(takeReconnected());
     } else {
       setActiveSession(false);
       setUserEmail("");
@@ -189,7 +214,14 @@ function App(props: {
       </header>
 
       <main>
-        {loading ? (
+        {props.reconnect ? (
+          <Reconnect
+            userEmail={userEmail}
+            error={error}
+            busy={busy}
+            onReconnect={loginGoogle}
+          />
+        ) : loading ? (
           <p className="small">Loading…</p>
         ) : !activeSession ? (
           props.refused ? (
@@ -314,6 +346,7 @@ function App(props: {
           <Account
             karlEmail={karlEmail}
             userEmail={userEmail}
+            reconnected={reconnected}
             error={error}
             busy={busy}
             onShowConnect={() => setStage("connect")}

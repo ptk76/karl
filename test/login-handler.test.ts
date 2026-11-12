@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   getUserBySid: vi.fn(),
   addUser: vi.fn(),
   updateUserTokens: vi.fn(),
+  loginExists: vi.fn(),
 }));
 
 vi.mock("../worker/google/token", () => ({
@@ -30,6 +31,7 @@ vi.mock("../worker/db", () => ({
     getUserBySid = mocks.getUserBySid;
     addUser = mocks.addUser;
     updateUserTokens = mocks.updateUserTokens;
+    loginExists = mocks.loginExists;
   },
 }));
 
@@ -137,6 +139,55 @@ describe("/api/active", () => {
       userEmail: "user@example.com",
       karlEmail: "karl-login",
     });
+  });
+});
+
+describe("/api/code", () => {
+  // An unsigned JWT is enough: the handler only base64-decodes the payload.
+  const idToken = `x.${btoa(JSON.stringify({ email: "user@example.com" }))}.x`;
+
+  function codeRequest() {
+    return apiRequest("/api/code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: "abc" }),
+    });
+  }
+
+  beforeEach(() => {
+    mocks.getAccessToken.mockResolvedValue({
+      access_token: "a",
+      expires_in: "3600",
+      refresh_token: "r",
+      refresh_token_expires_in: "604800",
+      id_token: idToken,
+    });
+  });
+
+  it("marks a first sign-in as a new user, so the app runs onboarding", async () => {
+    mocks.getUser.mockResolvedValue(null);
+    mocks.loginExists.mockResolvedValue(false);
+
+    const res = await loginHandler(codeRequest(), SECRET, noDb);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ type: "PROFILE", isNewUser: true });
+    expect(mocks.addUser).toHaveBeenCalled();
+  });
+
+  it("marks a returning sign-in (e.g. a reconnect) as an existing user", async () => {
+    mocks.getUser.mockResolvedValue({ email: "user@example.com", login: "karl" });
+
+    const res = await loginHandler(codeRequest(), SECRET, noDb);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      type: "PROFILE",
+      login: "karl",
+      isNewUser: false,
+    });
+    expect(mocks.updateUserTokens).toHaveBeenCalled();
+    expect(mocks.addUser).not.toHaveBeenCalled();
   });
 });
 

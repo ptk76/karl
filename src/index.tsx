@@ -25,12 +25,13 @@ if ((url.searchParams.get("code") || url.searchParams.get("error") === "access_d
   window.location.replace(target);
 }
 
-function AppShell() {
+function AppShell(props: { reconnect?: boolean }) {
   const u = new URL(window.location.href);
   return (
     <App
       code={u.searchParams.get("code")}
       refused={u.searchParams.get("error") === "access_denied"}
+      reconnect={props.reconnect}
     />
   );
 }
@@ -41,6 +42,8 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <Routes>
           <Route path="/app" element={<AppShell />} />
+          {/* Linked from the "Please sign in to DearKarl again" mail. */}
+          <Route path="/app/reconnect" element={<AppShell reconnect />} />
           <Route path="/blog" element={<BlogIndex />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/privacy" element={<Privacy />} />
