@@ -7,7 +7,6 @@ import sendEmail, {
 } from "../send-email";
 import {
   EmailContent,
-  Lang,
   couldNotSaveEmail,
   diagAuthRejectedSubject,
   savedEmail,
@@ -18,12 +17,6 @@ import {
 import GoogleToken from "../google/token";
 import { getValidToken } from "./utils";
 import { htmlToMarkdown } from "../../shared/html-to-md";
-
-/**
- * All mail goes out in English for now. The Polish copy is kept in
- * messages.ts for when accounts get a language setting.
- */
-const MAIL_LANG: Lang = "en";
 
 /** Google Drive rejects these in names; also cap the length. */
 function safeFileName(name: string): string {
@@ -76,13 +69,12 @@ export async function emailHandler(
     if (await claimUnknownSenderNotice(env.DB, message.from, Date.now())) {
       await send(
         message.from,
-        unknownSenderEmail(MAIL_LANG, { subject, from: message.from }),
+        unknownSenderEmail({ subject, from: message.from }),
       );
     }
     return;
   }
 
-  const lang = MAIL_LANG;
   const toAddress = email.to?.[0]?.address ?? message.to;
   const emailToLogin = email.to?.[0]?.address?.split("@")[0];
   if (!emailToLogin || user.login !== emailToLogin) {
@@ -90,7 +82,7 @@ export async function emailHandler(
     const karlDomain = message.to.split("@")[1] ?? "";
     await send(
       message.from,
-      wrongAddressEmail(lang, {
+      wrongAddressEmail({
         subject,
         to: toAddress,
         karlAddress: `${user.login}@${karlDomain}`,
@@ -108,7 +100,7 @@ export async function emailHandler(
   } else {
     accessToken = await getValidToken(user, client, db);
     if (accessToken === null) {
-      await send(user.email, signInAgainEmail(lang, { subject }));
+      await send(user.email, signInAgainEmail({ subject }));
       return;
     }
   }
@@ -125,7 +117,7 @@ export async function emailHandler(
       filename,
       email.html ? htmlToMarkdown(email.html) : (email.text ?? "NONE"),
     );
-    await send(user.email, savedEmail(lang, { subject, filename }));
+    await send(user.email, savedEmail({ subject, filename }));
   } catch (e: any) {
     // Only an actual authorization failure should tell the user to log in
     // again — otherwise the advice is wrong and sends them in a loop.
@@ -133,8 +125,8 @@ export async function emailHandler(
     await send(
       user.email,
       isAuthProblem
-        ? signInAgainEmail(lang, { subject })
-        : couldNotSaveEmail(lang, { subject }),
+        ? signInAgainEmail({ subject })
+        : couldNotSaveEmail({ subject }),
     );
   }
 }

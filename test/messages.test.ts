@@ -11,16 +11,25 @@ import {
 const evil = `<img src=x onerror=alert(1)>`;
 
 describe("mail copy", () => {
+  const all = () => [
+    savedEmail({ subject: "s", filename: "f" }),
+    unknownSenderEmail({ subject: "s", from: "a@b.c" }),
+    wrongAddressEmail({ subject: "s", to: "x@k", karlAddress: "y@k" }),
+    signInAgainEmail({ subject: "s" }),
+    couldNotSaveEmail({ subject: "s" }),
+  ];
+  const links = (html: string) =>
+    [...html.matchAll(/<a href="([^"]*)"[^>]*>([^<]*)<\/a>/g)].map(
+      ([, href, text]) => ({ href, text }),
+    );
+
   it("escapes every placeholder taken from inbound mail", () => {
     const mails = [
-      savedEmail("en", { subject: evil, filename: evil }),
-      savedEmail("pl", { subject: evil, filename: evil }),
-      unknownSenderEmail("en", { subject: evil, from: evil }),
-      unknownSenderEmail("pl", { subject: evil, from: evil }),
-      wrongAddressEmail("en", { subject: evil, to: evil, karlAddress: evil }),
-      wrongAddressEmail("pl", { subject: evil, to: evil, karlAddress: evil }),
-      signInAgainEmail("en", { subject: evil }),
-      couldNotSaveEmail("pl", { subject: evil }),
+      savedEmail({ subject: evil, filename: evil }),
+      unknownSenderEmail({ subject: evil, from: evil }),
+      wrongAddressEmail({ subject: evil, to: evil, karlAddress: evil }),
+      signInAgainEmail({ subject: evil }),
+      couldNotSaveEmail({ subject: evil }),
     ];
     for (const m of mails) {
       expect(m.html).not.toContain("<img");
@@ -29,14 +38,7 @@ describe("mail copy", () => {
   });
 
   it("puts the footer with company details on every user mail", () => {
-    const mails = [
-      savedEmail("en", { subject: "s", filename: "f" }),
-      unknownSenderEmail("en", { subject: "s", from: "a@b.c" }),
-      wrongAddressEmail("pl", { subject: "s", to: "x@k", karlAddress: "y@k" }),
-      signInAgainEmail("pl", { subject: "s" }),
-      couldNotSaveEmail("en", { subject: "s" }),
-    ];
-    for (const m of mails) {
+    for (const m of all()) {
       expect(m.html).toContain("NIP");
       expect(m.html).toContain("6912215667");
       expect(m.html).toContain("mailto:hi@dearkarl.com");
@@ -44,70 +46,68 @@ describe("mail copy", () => {
     }
   });
 
-  it("links the legal pages in the mail's language", () => {
-    const en = savedEmail("en", { subject: "s", filename: "f" }).html;
-    expect(en).toContain('href="https://dearkarl.com/privacy"');
-    expect(en).toContain('href="https://dearkarl.com/terms"');
-
-    const pl = savedEmail("pl", { subject: "s", filename: "f" }).html;
-    expect(pl).toContain('href="https://dearkarl.com/polityka-prywatnosci"');
-    expect(pl).toContain('href="https://dearkarl.com/regulamin"');
+  it("links both language versions of the privacy policy and terms", () => {
+    for (const m of all()) {
+      const hrefs = links(m.html).map((l) => l.href);
+      expect(hrefs).toContain("https://dearkarl.com/privacy");
+      expect(hrefs).toContain("https://dearkarl.com/polityka-prywatnosci");
+      expect(hrefs).toContain("https://dearkarl.com/terms");
+      expect(hrefs).toContain("https://dearkarl.com/regulamin");
+    }
   });
 
-  it("sends sign-in and sign-up links to the app, with matching link text", () => {
-    const app = "https://karl.przemekkudla.pl";
-    const mails = [
-      signInAgainEmail("en", { subject: "s" }),
-      signInAgainEmail("pl", { subject: "s" }),
-      unknownSenderEmail("en", { subject: "s", from: "a@b.c" }),
-      unknownSenderEmail("pl", { subject: "s", from: "a@b.c" }),
-    ];
-    for (const m of mails) {
-      expect(m.html).toMatch(new RegExp(`<a href="${app}"[^>]*>${app}</a>`));
+  it("links only dearkarl.com, never the test deployment", () => {
+    for (const m of all()) {
+      expect(m.html).not.toContain("przemekkudla");
+      for (const { href } of links(m.html)) {
+        expect(href).toMatch(/^(https:\/\/dearkarl\.com(\/|$)|mailto:hi@dearkarl\.com$)/);
+      }
+    }
+  });
+
+  it("sends sign-in and sign-up to dearkarl.com", () => {
+    for (const m of [
+      signInAgainEmail({ subject: "s" }),
+      unknownSenderEmail({ subject: "s", from: "a@b.c" }),
+    ]) {
+      expect(m.html).toContain(
+        '<a href="https://dearkarl.com" style="color:#1a56db">https://dearkarl.com</a>',
+      );
     }
   });
 
   it("never shows one address as link text while linking to another", () => {
-    const mails = (["en", "pl"] as const).flatMap((l) => [
-      savedEmail(l, { subject: "s", filename: "f" }),
-      unknownSenderEmail(l, { subject: "s", from: "a@b.c" }),
-      wrongAddressEmail(l, { subject: "s", to: "x@k", karlAddress: "y@k" }),
-      signInAgainEmail(l, { subject: "s" }),
-      couldNotSaveEmail(l, { subject: "s" }),
-    ]);
-    for (const m of mails) {
-      for (const [, href, text] of m.html.matchAll(
-        /<a href="([^"]*)"[^>]*>([^<]*)<\/a>/g,
-      )) {
+    for (const m of all()) {
+      for (const { href, text } of links(m.html)) {
         const host = text.match(/([a-z0-9-]+\.)+[a-z]{2,}/i)?.[0];
         if (host) expect(href).toContain(host);
       }
     }
   });
 
-  it("uses the agreed subjects", () => {
-    expect(savedEmail("en", { subject: "s", filename: "Note" }).subject).toBe(
-      "Saved: Note",
-    );
-    expect(savedEmail("pl", { subject: "s", filename: "Note" }).subject).toBe(
-      "Zapisane: Note",
-    );
-    expect(signInAgainEmail("pl", { subject: "s" }).subject).toBe(
-      "Zaloguj się ponownie do DearKarl",
-    );
-    expect(couldNotSaveEmail("en", { subject: "s" }).subject).toBe(
-      "I couldn't save your email",
-    );
+  it("is English only", () => {
+    for (const m of all()) {
+      expect(m.html).not.toMatch(/Cześć|Dostajesz|Zapisane/);
+    }
   });
 
-  it("keeps the Polish copy of mail 2", () => {
-    expect(unknownSenderEmail("pl", { subject: "s", from: "a@b.c" }).subject).toBe(
-      "Nie znam jeszcze tego adresu",
+  it("uses the agreed subjects", () => {
+    expect(savedEmail({ subject: "s", filename: "Note" }).subject).toBe(
+      "Saved: Note",
+    );
+    expect(signInAgainEmail({ subject: "s" }).subject).toBe(
+      "Please sign in to DearKarl again",
+    );
+    expect(couldNotSaveEmail({ subject: "s" }).subject).toBe(
+      "I couldn't save your email",
+    );
+    expect(unknownSenderEmail({ subject: "s", from: "a@b.c" }).subject).toBe(
+      "I don't know this address yet",
     );
   });
 
   it("tells the user their right address on mail 3", () => {
-    const { html } = wrongAddressEmail("en", {
+    const { html } = wrongAddressEmail({
       subject: "s",
       to: "abc@dearkarl.com",
       karlAddress: "me123@dearkarl.com",

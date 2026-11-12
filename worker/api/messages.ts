@@ -7,29 +7,20 @@
  */
 import { escapeHtml } from "../send-email";
 
-export type Lang = "en" | "pl";
-
 export interface EmailContent {
   subject: string;
   /** HTML body, ready for Elastic Email. */
   html: string;
 }
 
+/** Every link in user mail points here; karl.przemekkudla.pl is only the test deployment. */
 const SITE = "https://dearkarl.com";
-/**
- * Where users sign in and create an account. dearkarl.com is only the landing
- * page for now (no sign-in there), so these links go straight to the app.
- * Switch to SITE once dearkarl.com serves the app.
- */
-const APP = "https://karl.przemekkudla.pl";
 const CONTACT = "hi@dearkarl.com";
-const LEGAL: Record<Lang, { privacy: string; terms: string }> = {
-  en: { privacy: `${SITE}/privacy`, terms: `${SITE}/terms` },
-  pl: {
-    privacy: `${SITE}/polityka-prywatnosci`,
-    terms: `${SITE}/regulamin`,
-  },
-};
+/** Mail is English-only; the legal pages exist in both languages, so link both. */
+const PRIVACY_EN = `${SITE}/privacy`;
+const PRIVACY_PL = `${SITE}/polityka-prywatnosci`;
+const TERMS_EN = `${SITE}/terms`;
+const TERMS_PL = `${SITE}/regulamin`;
 
 const FONT = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
 
@@ -47,48 +38,28 @@ const dot = " &nbsp;·&nbsp; ";
  * Footer as a full-width band under the mail: three short lines instead of
  * a column, so it stays out of the way of the message itself.
  */
-function footer(lang: Lang, whyLine: string): string {
-  const site = link(SITE, "dearkarl.com", MUTED_LINK);
-  const contact = mailto(CONTACT, MUTED_LINK);
-  const lines =
-    lang === "pl"
-      ? [
-          [
-            `<strong>DearKarl</strong>`,
-            site,
-            `Kontakt: ${contact}`,
-            link(LEGAL.pl.privacy, "Polityka prywatności", MUTED_LINK),
-            link(LEGAL.pl.terms, "Regulamin", MUTED_LINK),
-          ].join(dot),
-          [
-            "Technologie 21 Aleksander Jaworski",
-            "ul. Pionerska 7/2, 53-213 Wrocław",
-            "NIP: 6912215667, wpis do CEIDG",
-          ].join(dot),
-          whyLine,
-        ]
-      : [
-          [
-            `<strong>DearKarl</strong>`,
-            site,
-            `Contact: ${contact}`,
-            link(LEGAL.en.privacy, "Privacy policy", MUTED_LINK),
-            link(LEGAL.en.terms, "Terms", MUTED_LINK),
-          ].join(dot),
-          [
-            "Technologie 21 Aleksander Jaworski",
-            "Pionerska 7/2, 53-213 Wrocław, Poland",
-            "VAT ID (NIP): 6912215667, registered in CEIDG",
-          ].join(dot),
-          whyLine,
-        ];
+function footer(whyLine: string): string {
+  const lines = [
+    [
+      `<strong>DearKarl</strong>`,
+      link(SITE, "dearkarl.com", MUTED_LINK),
+      `Contact: ${mailto(CONTACT, MUTED_LINK)}`,
+    ].join(dot),
+    [
+      `Privacy policy: ${link(PRIVACY_EN, "English", MUTED_LINK)} / ${link(PRIVACY_PL, "Polski", MUTED_LINK)}`,
+      `Terms: ${link(TERMS_EN, "English", MUTED_LINK)} / ${link(TERMS_PL, "Polski", MUTED_LINK)}`,
+    ].join(dot),
+    [
+      "Technologie 21 Aleksander Jaworski",
+      "Pionerska 7/2, 53-213 Wrocław, Poland",
+      "VAT ID (NIP): 6912215667, registered in CEIDG",
+    ].join(dot),
+    whyLine,
+  ];
   return `<tr><td style="background:#f6f6f6;border-top:1px solid #e3e3e3;padding:16px 24px;color:#666;font-size:12px;line-height:1.6">${lines.join("<br>\n")}</td></tr>`;
 }
 
-const ACCOUNT_WHY: Record<Lang, string> = {
-  en: "You got this because you have a DearKarl account.",
-  pl: "Dostajesz to, bo masz konto w DearKarl.",
-};
+const ACCOUNT_WHY = "You got this because you have a DearKarl account.";
 
 /**
  * Mail layout: a full-width table (tables survive Gmail/Outlook, divs with
@@ -107,28 +78,9 @@ ${foot}
 
 // ---------------------------------------------------------------- 1. Saved
 
-export function savedEmail(
-  lang: Lang,
-  v: { subject: string; filename: string },
-): EmailContent {
+export function savedEmail(v: { subject: string; filename: string }): EmailContent {
   const subject = escapeHtml(v.subject);
   const filename = escapeHtml(v.filename);
-  if (lang === "pl") {
-    return {
-      subject: `Zapisane: ${v.filename}`,
-      html: body(
-        p("Cześć,"),
-        p(
-          `zapisałem Twojego maila „${subject}” na Twoim Dysku Google, w folderze dearkarl, jako „${filename}”.`,
-        ),
-        p("Karl"),
-        footer(
-          "pl",
-          "Dostajesz to po każdym zapisanym mailu.",
-        ),
-      ),
-    };
-  }
   return {
     subject: `Saved: ${v.filename}`,
     html: body(
@@ -137,42 +89,16 @@ export function savedEmail(
         `I saved your email "${subject}" to the dearkarl folder on your Google Drive as "${filename}".`,
       ),
       p("Karl"),
-      footer(
-        "en",
-        "You get this after every saved email.",
-      ),
+      footer("You get this after every saved email."),
     ),
   };
 }
 
 // ------------------------------------------------- 2. Sender not recognised
 
-export function unknownSenderEmail(
-  lang: Lang,
-  v: { subject: string; from: string },
-): EmailContent {
+export function unknownSenderEmail(v: { subject: string; from: string }): EmailContent {
   const subject = escapeHtml(v.subject);
   const from = escapeHtml(v.from);
-  if (lang === "pl") {
-    return {
-      subject: "Nie znam jeszcze tego adresu",
-      html: body(
-        p("Cześć,"),
-        p(
-          `dostałem Twojego maila „${subject}”, ale adres ${from} nie jest połączony z żadnym kontem DearKarl. Nic nie zapisałem.`,
-        ),
-        p(
-          "Jeśli masz już konto, wyślij maila z adresu Google przypisanego do konta.",
-          `Jeśli nie, załóż je na ${link(APP)}.`,
-        ),
-        p("Karl"),
-        footer(
-          "pl",
-          `Dostajesz to, bo z adresu ${from} przyszedł mail na adres DearKarl.`,
-        ),
-      ),
-    };
-  }
   return {
     subject: "I don't know this address yet",
     html: body(
@@ -182,11 +108,10 @@ export function unknownSenderEmail(
       ),
       p(
         "If you already have an account, send from the Google address you signed up with.",
-        `If not, you can create one at ${link(APP)}.`,
+        `If not, you can create one at ${link(SITE)}.`,
       ),
       p("Karl"),
       footer(
-        "en",
         `You got this because an email from ${from} was sent to a DearKarl address.`,
       ),
     ),
@@ -195,27 +120,14 @@ export function unknownSenderEmail(
 
 // ------------------------------------------------ 3. Wrong DearKarl address
 
-export function wrongAddressEmail(
-  lang: Lang,
-  v: { subject: string; to: string; karlAddress: string },
-): EmailContent {
+export function wrongAddressEmail(v: {
+  subject: string;
+  to: string;
+  karlAddress: string;
+}): EmailContent {
   const subject = escapeHtml(v.subject);
   const to = escapeHtml(v.to);
   const karl = escapeHtml(v.karlAddress);
-  if (lang === "pl") {
-    return {
-      subject: "To nie jest Twój adres DearKarl",
-      html: body(
-        p("Cześć,"),
-        p(
-          `mail „${subject}” poszedł na ${to}, a to nie jest Twój adres DearKarl. Nic nie zapisałem.`,
-        ),
-        p(`Twój adres to ${karl}. Wyślij maila tam, a go zapiszę.`),
-        p("Karl"),
-        footer("pl", ACCOUNT_WHY.pl),
-      ),
-    };
-  }
   return {
     subject: "That isn't your DearKarl address",
     html: body(
@@ -225,34 +137,15 @@ export function wrongAddressEmail(
       ),
       p(`Your address is ${karl}. Send the email there and I'll save it.`),
       p("Karl"),
-      footer("en", ACCOUNT_WHY.en),
+      footer(ACCOUNT_WHY),
     ),
   };
 }
 
 // ---------------------------------------------------------- 4. Sign in again
 
-export function signInAgainEmail(
-  lang: Lang,
-  v: { subject: string },
-): EmailContent {
+export function signInAgainEmail(v: { subject: string }): EmailContent {
   const subject = escapeHtml(v.subject);
-  if (lang === "pl") {
-    return {
-      subject: "Zaloguj się ponownie do DearKarl",
-      html: body(
-        p("Cześć,"),
-        p(
-          `nie zapisałem „${subject}”, bo wygasł mój dostęp do Twojego Dysku Google.`,
-        ),
-        p(
-          `Zaloguj się ponownie na ${link(APP)} i wyślij maila jeszcze raz.`,
-        ),
-        p("Karl"),
-        footer("pl", ACCOUNT_WHY.pl),
-      ),
-    };
-  }
   return {
     subject: "Please sign in to DearKarl again",
     html: body(
@@ -260,35 +153,17 @@ export function signInAgainEmail(
       p(
         `I couldn't save "${subject}" because my access to your Google Drive has expired. Nothing was saved.`,
       ),
-      p(`Sign in again at ${link(APP)}, then send the email once more.`),
+      p(`Sign in again at ${link(SITE)}, then send the email once more.`),
       p("Karl"),
-      footer("en", ACCOUNT_WHY.en),
+      footer(ACCOUNT_WHY),
     ),
   };
 }
 
 // ----------------------------------------------------------- 5. Could not save
 
-export function couldNotSaveEmail(
-  lang: Lang,
-  v: { subject: string },
-): EmailContent {
+export function couldNotSaveEmail(v: { subject: string }): EmailContent {
   const subject = escapeHtml(v.subject);
-  if (lang === "pl") {
-    return {
-      subject: "Nie udało mi się zapisać Twojego maila",
-      html: body(
-        p("Cześć,"),
-        p(`nie mogłem zapisać „${subject}” na Twoim Dysku Google.`),
-        p(
-          "Najczęściej to znaczy, że dysk jest pełny. Zwolnij trochę miejsca i wyślij maila jeszcze raz.",
-          `Jeśli to się powtarza, napisz do nas: ${mailto(CONTACT)}.`,
-        ),
-        p("Karl"),
-        footer("pl", ACCOUNT_WHY.pl),
-      ),
-    };
-  }
   return {
     subject: "I couldn't save your email",
     html: body(
@@ -299,7 +174,7 @@ export function couldNotSaveEmail(
         `If it keeps happening, write to ${mailto(CONTACT)}.`,
       ),
       p("Karl"),
-      footer("en", ACCOUNT_WHY.en),
+      footer(ACCOUNT_WHY),
     ),
   };
 }
