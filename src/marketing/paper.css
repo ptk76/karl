@@ -105,6 +105,10 @@
   font-weight: 500; letter-spacing: .02em; color: var(--ink); text-decoration: none;
 }
 .dk .brand:hover { text-decoration: none; }
+.dk .brandbar-r { display: inline-flex; align-items: center; gap: 14px; }
+.dk .authnav { font-family: var(--head); font-size: .9rem; color: var(--muted); white-space: nowrap; }
+.dk .authnav a { color: var(--ink); text-decoration: none; }
+.dk .authnav a:hover { text-decoration: underline; }
 .dk .badge {
   font-size: .72rem; color: var(--muted);
   border: 1px solid var(--line); padding: 5px 10px;
@@ -219,6 +223,10 @@
 .dk .hero { padding: 8px 0 6px; max-width: 42rem; }
 .dk .hero h1 { font-size: clamp(2.6rem, 6.4vw, 4.2rem); }
 .dk .hero .lede { font-size: 1.2rem; }
+/* The primary button sits in the hero so it is above the fold on every
+   screen; the lead card below repeats it after the details. */
+.dk .hero-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 26px; }
+.dk .hero-cta .cta-note { margin: 0; }
 
 /* the main option carries the weight: a solid ink edge against the
    secondary option's hairline. Without hue, edge weight is the whole signal. */
@@ -238,6 +246,8 @@
 .dk .prereq li::before { content: "→"; position: absolute; left: 0; color: var(--ink); }
 .dk .prereq b { color: var(--ink); font-weight: 650; }
 .dk .cta-note { font-size: .86rem; color: var(--muted); margin: 14px 0 0; }
+.dk a.cta-note, .dk .cta-note a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.dk a.cta-note:hover, .dk .cta-note a:hover { color: var(--ink); }
 
 .dk .lp-sec { margin-top: 64px; padding-top: 44px; border-top-width: 1px; }
 .dk .lp-sec > h2 { display: flex; align-items: center; gap: 12px; font-size: 1.5rem; letter-spacing: -.02em; margin: 0 0 .5em; }
@@ -344,6 +354,7 @@
   .dk .hero { padding: 4px 0 2px; }
   .dk .hero h1 { font-size: 2.2rem; }
   .dk .hero .lede { font-size: 1rem; }
+  .dk .hero-cta { margin-top: 18px; }
   .dk .lead-card { margin-top: 28px; padding: 24px 18px 20px; }
   .dk .lead-card h2 { font-size: 1.3rem; }
   .dk .alt-card { padding: 20px 18px; }

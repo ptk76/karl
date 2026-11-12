@@ -6,6 +6,8 @@ import { ApiTokens } from "./ApiTokens";
 function Account(props: {
   karlEmail: string;
   userEmail: string;
+  /** Just came back from /app/reconnect with fresh Google access. */
+  reconnected?: boolean;
   error?: string;
   busy?: boolean;
   onShowConnect: () => void;
@@ -20,6 +22,13 @@ function Account(props: {
         <span className="led" aria-hidden="true" />
         Connected — mail is landing in your Drive folder.
       </p>
+
+      {props.reconnected && (
+        <p className="notice" role="status" style={{ marginTop: 16 }}>
+          <b>Drive access renewed.</b> Karl can save your mail again. Anything
+          that failed while access was gone was not saved — send it once more.
+        </p>
+      )}
 
       {props.error && (
         <p role="alert" className={style.error}>
