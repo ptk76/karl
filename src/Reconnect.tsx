@@ -46,7 +46,7 @@ function Reconnect(props: {
 
       <div className="btn-row">
         <button className="btn" onClick={props.onReconnect} disabled={props.busy}>
-          Reconnect Google Drive
+          {props.busy ? "Opening Google…" : "Reconnect Google Drive"}
         </button>
       </div>
       <p className="small" style={{ marginTop: 16 }}>

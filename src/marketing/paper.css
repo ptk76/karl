@@ -107,7 +107,11 @@
 .dk .brand:hover { text-decoration: none; }
 .dk .brandbar-r { display: inline-flex; align-items: center; gap: 14px; }
 .dk .authnav { font-family: var(--head); font-size: .9rem; color: var(--muted); white-space: nowrap; }
-.dk .authnav a { color: var(--ink); text-decoration: none; }
+.dk .authnav a {
+  color: var(--ink); text-decoration: none;
+  /* 44px touch target without changing how the text sits in the bar */
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px;
+}
 .dk .authnav a:hover { text-decoration: underline; }
 .dk .badge {
   font-size: .72rem; color: var(--muted);
