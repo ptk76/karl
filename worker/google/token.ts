@@ -84,7 +84,7 @@ class GoogleToken {
     }
 
     const data = (await res.json()) as TokenInfo;
-
+    console.info("GOOGLE", data);
     return {
       valid: true,
       expires_in: Number(data.expires_in),

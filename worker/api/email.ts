@@ -94,20 +94,15 @@ export async function emailHandler(
   const secret = env.GOOGLE_CLIENT_SECRET;
   const client = new GoogleToken(secret);
 
-  let accessToken: string | null = "";
-  if (client.isTokenValid(user.access_expires ?? 0)) {
-    accessToken = user.access_token!;
-  } else {
-    accessToken = await getValidToken(user, client, db);
-    if (accessToken === null) {
-      await send(user.email, signInAgainEmail({ subject }));
-      return;
-    }
+  const accessToken = await getValidToken(user, client, db);
+  if (accessToken === null) {
+    await send(user.email, signInAgainEmail({ subject }));
+    return;
   }
 
   const drive = new GoogleDrive(accessToken);
   const filename = safeFileName(
-    email.subject ?? `${crypto.randomUUID().split("-")[0]}.txt`,
+    email.subject ?? `${crypto.randomUUID().split("-")[0]}.md`,
   );
 
   try {
