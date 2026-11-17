@@ -23,7 +23,17 @@ export default function Base(props: BaseProps): React.JSX.Element {
             <Link className="brand" to="/">
               📬 dearkarl
             </Link>
-            {props.badge && <span className="badge">{props.badge}</span>}
+            <span className="brandbar-r">
+              {props.badge && <span className="badge">{props.badge}</span>}
+              {/* Plain links, not <Link>: /app is the account app, which
+                  reads the URL once on load. Sign-up and log-in are the same
+                  Google flow; the app tells new and returning users apart. */}
+              <nav className="authnav" aria-label="Account">
+                <a href="/app">Register</a>
+                <span aria-hidden="true"> / </span>
+                <a href="/app">Log in</a>
+              </nav>
+            </span>
           </header>
           {props.children}
         </div>

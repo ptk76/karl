@@ -141,6 +141,14 @@ export default function Home(): React.JSX.Element {
           Email anything to your AI. Forward an article, a note you dictated, a
           receipt — and your next Claude session opens knowing it arrived.
         </p>
+        <div className="hero-cta">
+          <a className="btn" href="/app">
+            Get your address
+          </a>
+          <a className="cta-note" href="#faq">
+            Have privacy questions or doubts? Read the answers ↓
+          </a>
+        </div>
       </div>
 
       <div className="lead-card">
@@ -156,15 +164,16 @@ export default function Home(): React.JSX.Element {
             device.
           </li>
           <li>
-            <b>Paste one line into Claude Code.</b> That is the whole install.
+            <b>Connect Claude Code over MCP.</b> One <code>claude mcp add</code>{" "}
+            command with your personal token — nothing to download.
           </li>
         </ul>
         <a className="btn" href="/app">
-          Start
+          Get your address
         </a>
         <p className="cta-note">
-          Two more questions on the next page — they decide what gets built
-          first. Karl writes once, when it opens. No other mail.
+          Have privacy questions or doubts?{" "}
+          <a href="#faq">Read the answers below</a>.
         </p>
       </div>
 
@@ -212,10 +221,13 @@ export default function Home(): React.JSX.Element {
           </li>
           <li>
             <StepIcon kind="sage" />
-            <h4>Paste one line into Claude Code</h4>
+            <h4>Connect Claude Code over MCP</h4>
             <p>
-              It tells Claude Code where to find your folder. Nothing is
-              downloaded, and no token is ever shown to you or pasted by you.
+              Karl is an MCP server. You run one <code>claude mcp add</code>{" "}
+              command with a personal token we generate for you, and Claude Code
+              can list and read the files in your Karl folder — nothing else.
+              Nothing is downloaded, and you can revoke the token on your
+              account page at any time.
             </p>
           </li>
           <li>
@@ -230,7 +242,7 @@ export default function Home(): React.JSX.Element {
         </ol>
       </section>
 
-      <section className="lp-sec">
+      <section className="lp-sec" id="faq">
         <h2>
           <span className="g" aria-hidden="true">
             ◆

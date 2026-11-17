@@ -126,10 +126,13 @@ export function isResponsePayloadLogin(
   );
 }
 
-type ResponsePayloadProfile = {
+export type ResponsePayloadProfile = {
   type: "PROFILE";
   email: string;
   login: string;
+  /** True when this sign-in created the account, so the app runs onboarding;
+      false for a returning user, who goes straight to their account page. */
+  isNewUser: boolean;
 };
 
 export function isResponsePayloadProfile(
